@@ -1,0 +1,310 @@
+/* Panel de administracion de Utemito.
+   Reutiliza la paleta institucional definida en style.css (:root). */
+
+.header-buho {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+}
+
+.admin-main {
+  flex: 1;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-card {
+  background: white;
+  border-radius: var(--radius);
+  border-top: 4px solid var(--dorado);
+  box-shadow: var(--shadow);
+  padding: 22px 24px;
+}
+
+.admin-card h2 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+  color: var(--verde-utm-oscuro);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.card-head h2 { margin: 0; }
+
+.muted { color: var(--gris); font-size: 0.88rem; line-height: 1.5; margin: 0 0 14px; }
+.muted code {
+  background: var(--crema);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 0.85em;
+}
+.center { text-align: center; }
+.error-text { color: #c92a2a; font-size: 0.85rem; margin: 8px 0 0; }
+
+/* ---------- Botones ---------- */
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  font-family: inherit;
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: linear-gradient(120deg, var(--verde-utm-oscuro), var(--verde-utm));
+  color: white;
+}
+.btn-primary:not(:disabled):hover { filter: brightness(1.08); }
+
+.btn-ghost {
+  background: white;
+  color: var(--verde-utm-oscuro);
+  border: 1px solid #cdead9;
+}
+.btn-ghost:not(:disabled):hover { background: #eaf7ee; }
+
+.btn-sm { padding: 7px 13px; font-size: 0.8rem; }
+
+.btn-danger {
+  background: white;
+  color: #c92a2a;
+  border: 1px solid #f1c9c9;
+}
+.btn-danger:not(:disabled):hover { background: #fdecec; }
+
+/* ---------- Login por token ---------- */
+
+.token-form { display: flex; gap: 10px; flex-wrap: wrap; }
+.token-form input {
+  flex: 1;
+  min-width: 220px;
+  border: 1px solid #cdead9;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  outline: none;
+}
+.token-form input:focus { border-color: var(--verde-utm-claro); }
+
+/* ---------- Estadisticas ---------- */
+
+.stats-row {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.stat {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--verde-utm);
+  padding: 14px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+}
+.stat-num { font-size: 1.7rem; font-weight: 700; color: var(--verde-utm-oscuro); }
+.stat-label { font-size: 0.78rem; color: var(--gris); }
+.stats-row .btn { margin-left: auto; align-self: center; }
+
+/* ---------- Dropzone ---------- */
+
+.dropzone {
+  border: 2px dashed #b6dcc4;
+  border-radius: var(--radius);
+  background: var(--crema);
+  padding: 30px 20px;
+  text-align: center;
+  color: var(--gris);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dropzone p { margin: 8px 0 0; font-size: 0.9rem; }
+.dropzone:hover,
+.dropzone:focus-visible { border-color: var(--verde-utm); background: #eef7f0; outline: none; }
+.dropzone.dragover {
+  border-color: var(--verde-utm);
+  background: #e3f6e9;
+  color: var(--verde-utm-oscuro);
+}
+
+/* ---------- Cola de archivos por subir ---------- */
+
+.file-queue { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.file-queue:empty { display: none; }
+.file-queue li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--crema);
+  border: 1px solid #e6ddc3;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+.file-queue .fq-name { flex: 1; word-break: break-all; }
+.file-queue .fq-size { color: var(--gris); font-size: 0.8rem; }
+.file-queue .fq-remove {
+  border: none;
+  background: transparent;
+  color: var(--gris);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 4px;
+}
+.file-queue .fq-remove:hover { color: #c92a2a; }
+.file-queue li.bad { border-color: #f1c9c9; background: #fdecec; }
+
+.actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+/* ---------- Tabla de documentos ---------- */
+
+.table-wrap { overflow-x: auto; }
+
+.doc-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+.doc-table th, .doc-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e8f1ea;
+}
+.doc-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris);
+}
+.doc-table td.num, .doc-table th.num { text-align: right; white-space: nowrap; }
+.doc-table tbody tr:hover { background: #f6fbf8; }
+.doc-table .doc-name { font-weight: 600; color: var(--texto); word-break: break-all; }
+.actions-col { width: 1%; white-space: nowrap; }
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.badge-ok { background: #e3f6e9; color: var(--verde-utm-oscuro); }
+.badge-warn { background: #fff3d2; color: #8a6404; }
+.badge-err { background: #fdecec; color: #c92a2a; }
+
+/* ---------- Toasts ---------- */
+
+.toast-stack {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+  max-width: 340px;
+}
+.toast {
+  background: white;
+  border-left: 4px solid var(--verde-utm);
+  box-shadow: var(--shadow);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  color: var(--texto);
+  animation: toast-in 0.2s ease;
+}
+.toast.err { border-left-color: #c92a2a; }
+.toast.warn { border-left-color: var(--dorado); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+.btn-ghost .spinner { border-color: #cdead9; border-top-color: var(--verde-utm); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .admin-main { padding: 16px; }
+  .header-actions { margin-left: 0; }
+  .app-header { flex-wrap: wrap; }
+}
+
+/* ---------- Modo oscuro (ver toggle y variables en style.css) ---------- */
+
+:root[data-theme="dark"] .admin-card,
+:root[data-theme="dark"] .stat,
+:root[data-theme="dark"] .toast {
+  background: #121c17;
+  color: var(--texto);
+}
+
+:root[data-theme="dark"] .muted code { background: #1a2620; }
+
+:root[data-theme="dark"] .token-form input {
+  background: #1a2620;
+  border-color: #24352c;
+  color: var(--texto);
+}
+
+:root[data-theme="dark"] .btn-ghost {
+  background: #1a2620;
+  color: var(--texto);
+  border-color: #24352c;
+}
+:root[data-theme="dark"] .btn-ghost:not(:disabled):hover { background: #223229; }
+
+:root[data-theme="dark"] .btn-danger {
+  background: #241414;
+  color: #ff9a9a;
+  border-color: #3a1f1f;
+}
+:root[data-theme="dark"] .btn-danger:not(:disabled):hover { background: #2e1818; }
+
+:root[data-theme="dark"] .dropzone {
+  border-color: #2a3d33;
+  background: #182420;
+  color: var(--gris);
+}
+:root[data-theme="dark"] .dropzone:hover,
+:root[data-theme="dark"] .dropzone:focus-visible { border-color: var(--verde-utm); background: #1c2e25; }
+:root[data-theme="dark"] .dropzone.dragover { border-color: var(--verde-utm-claro); background: #1e3327; color: #bfe8cf; }
+
+:root[data-theme="dark"] .file-queue li { background: #182420; border-color: #2a3d33; }
+:root[data-theme="dark"] .file-queue li.bad { border-color: #3a1f1f; background: #241414; }
+
+:root[data-theme="dark"] .doc-table th,
+:root[data-theme="dark"] .doc-table td { border-bottom-color: #20302a; }
+:root[data-theme="dark"] .doc-table tbody tr:hover { background: #182420; }
+:root[data-theme="dark"] .doc-table .doc-name { color: var(--texto); }
+
+:root[data-theme="dark"] .badge-ok { background: #173321; color: #7be3a0; }
+:root[data-theme="dark"] .badge-warn { background: #332a10; color: #f0cf6a; }
+:root[data-theme="dark"] .badge-err { background: #331414; color: #ff9a9a; }

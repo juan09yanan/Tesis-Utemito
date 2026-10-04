@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Utemito · Panel de administración — FCI-UTM</title>
+<script>
+  // Respeta el modo oscuro elegido en la pagina principal (evita parpadeo).
+  try {
+    if (localStorage.getItem('utemito_theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="/css/style.css?v=6">
+<link rel="stylesheet" href="/css/admin.css?v=5">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="app-header">
+    <img src="/assets/buho.svg" alt="Utemito" class="header-buho" />
+    <div class="header-info">
+      <h1>UTEMITO · Administración</h1>
+      <p>Base de conocimiento · Facultad de Ciencias Informáticas · UTM</p>
+    </div>
+    <div class="header-actions">
+      <a href="/" class="header-link">← Volver al chat</a>
+    </div>
+  </header>
+
+  <main class="admin-main">
+
+    <section class="admin-card" id="tokenCard" hidden>
+      <h2>Acceso restringido</h2>
+      <p class="muted">Este panel está protegido. Ingresa el token de administrador para continuar.</p>
+      <form class="token-form" id="tokenForm" autocomplete="off">
+        <input type="password" id="tokenInput" placeholder="Token de administrador" />
+        <button type="submit" class="btn btn-primary">Entrar</button>
+      </form>
+      <p class="error-text" id="tokenError" hidden></p>
+    </section>
+
+    <div id="panel" hidden>
+
+      <div class="stats-row">
+        <div class="stat">
+          <span class="stat-num" id="statDocs">—</span>
+          <span class="stat-label">Documentos</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="statChunks">—</span>
+          <span class="stat-label">Fragmentos indexados</span>
+        </div>
+        <button class="btn btn-ghost" id="reindexBtn" type="button">Reindexar todo</button>
+      </div>
+
+      <section class="admin-card">
+        <h2>Subir documentos</h2>
+        <p class="muted">
+          Formatos aceptados: <strong>.md, .txt, .pdf, .docx</strong>.
+          Al subir, el documento se guarda en la carpeta <code>documentos/</code>
+          y se indexa automáticamente en la base vectorial. Si subes un archivo
+          con un nombre que ya existe, se reemplaza.
+        </p>
+
+        <div class="dropzone" id="dropzone" tabindex="0" role="button"
+             aria-label="Arrastra archivos aquí o haz clic para elegirlos">
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.7">
+            <path d="M12 16V4m0 0L7 9m5-5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke-linecap="round"/>
+          </svg>
+          <p><strong>Arrastra tus archivos aquí</strong> o haz clic para elegirlos</p>
+          <input type="file" id="fileInput" multiple accept=".md,.txt,.pdf,.docx" hidden />
+        </div>
+
+        <ul class="file-queue" id="fileQueue"></ul>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="uploadBtn" type="button" disabled>Subir e indexar</button>
+          <button class="btn btn-ghost" id="clearQueueBtn" type="button" disabled>Limpiar lista</button>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <div class="card-head">
+          <h2>Documentos en la base de conocimiento</h2>
+          <button class="btn btn-ghost btn-sm" id="refreshBtn" type="button">Actualizar</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th class="num">Tamaño</th>
+                <th class="num">Fragmentos</th>
+                <th>Estado</th>
+                <th class="actions-col">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="docTableBody">
+              <tr><td colspan="5" class="muted center">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <div class="card-head">
+          <h2>Contactos y enlaces detectados</h2>
+          <button class="btn btn-ghost btn-sm" id="refreshContactsBtn" type="button">Actualizar</button>
+        </div>
+        <p class="muted">
+          Correos, teléfonos/extensiones y enlaces que el sistema extrajo automáticamente
+          de tus documentos y guardó en la base de datos. Utemito solo usa estos datos
+          (nunca inventa otros) cuando responde una pregunta relacionada.
+        </p>
+
+        <div class="table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Sección</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody id="contactsTableBody">
+              <tr><td colspan="4" class="muted center">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    Proyecto de tesis · Facultad de Ciencias Informáticas · Universidad Técnica de Manabí
+  </footer>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="/js/admin.js?v=5"></script>
+</body>
+</html>

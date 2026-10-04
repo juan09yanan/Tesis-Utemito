@@ -1,0 +1,609 @@
+================================================================================
+ UTEMITO - ASISTENTE VIRTUAL DE LA FACULTAD DE CIENCIAS INFORMATICAS (FCI-UTM)
+ DOCUMENTACION TECNICA DEL PROYECTO (para sustentacion de tesis)
+================================================================================
+
+Universidad Tecnica de Manabi (UTM) - Facultad de Ciencias Informaticas (FCI)
+Proyecto de tesis: sistema web de asistencia virtual para tramites estudiantiles
+
+
+================================================================================
+1. RESUMEN DEL PROYECTO
+================================================================================
+
+Utemito es un asistente virtual (chatbot) con voz e interfaz web, pensado para
+que los estudiantes de la Facultad de Ciencias Informaticas de la UTM resuelvan
+dudas sobre tramites universitarios (matricula, certificados, becas, practicas
+preprofesionales, titulacion, homologacion/convalidacion, movilidad de carrera,
+etc.) consultando directamente a un buho mascota animado.
+
+El sistema NO es un chatbot generico de IA: usa una arquitectura RAG
+(Retrieval Augmented Generation, "generacion aumentada por recuperacion").
+Esto significa que el modelo de lenguaje (LLM) NUNCA responde de memoria ni
+inventa informacion: primero se buscan los fragmentos mas relevantes dentro de
+los documentos oficiales que la propia facultad sube al sistema, y luego el
+modelo redacta la respuesta EXCLUSIVAMENTE con esa informacion recuperada.
+
+Objetivo central de diseño: que la informacion que reciben los estudiantes
+(fechas, requisitos, correos, telefonos, enlaces) sea siempre la que la
+facultad cargo, nunca una alucinacion del modelo de IA.
+
+
+================================================================================
+2. ARQUITECTURA GENERAL
+================================================================================
+
+    Estudiante (navegador: Chrome/Edge recomendado)
+            |
+            |  HTTP (chat de texto o voz)
+            v
+    +-----------------------------------------------------------+
+    |  FRONTEND (HTML + CSS + JS, sin frameworks)                |
+    |  - index.html / chat.js / style.css   -> chat con el buho  |
+    |  - admin.html / admin.js / admin.css  -> panel de carga    |
+    |  - Web Speech API (STT/TTS) nativa del navegador           |
+    +-----------------------------------------------------------+
+            |
+            |  fetch() a la API REST
+            v
+    +-----------------------------------------------------------+
+    |  BACKEND (Python + FastAPI, servidor Uvicorn)               |
+    |                                                             |
+    |   POST /api/chat  ---------->  backend/rag/llm.py           |
+    |                                   |                         |
+    |                    (1) RETRIEVAL  |                         |
+    |                        busca los fragmentos mas             |
+    |                        parecidos a la pregunta               |
+    |                                   v                         |
+    |                        +-------------------+                |
+    |                        |     ChromaDB      |  base vectorial|
+    |                        | (embeddings de    |  (persistente, |
+    |                        |  los documentos)  |   local)       |
+    |                        +-------------------+                |
+    |                                   |                         |
+    |                    (2) Se agregan los datos de contacto      |
+    |                        ya extraidos de esos documentos       |
+    |                                   v                         |
+    |                        +-------------------+                |
+    |                        |  SQLite (contactos)|  base de datos |
+    |                        |  correos/telefonos/|  relacional    |
+    |                        |  enlaces           |                |
+    |                        +-------------------+                |
+    |                                   |                         |
+    |                    (3) GENERATION |                         |
+    |                        se envia el contexto recuperado +     |
+    |                        la pregunta al modelo de lenguaje     |
+    |                                   v                         |
+    |                        +-------------------+                |
+    |                        |     Groq API      |  LLM en la nube|
+    |                        | (openai/gpt-oss-   |  (gratuito)    |
+    |                        |  120b)             |                |
+    |                        +-------------------+                |
+    |                                                             |
+    |   /api/admin/*  ------------->  backend/admin.py             |
+    |                                   |                         |
+    |                        sube, lista, borra y reindexa         |
+    |                        documentos (carpeta documentos/)      |
+    |                        y coordina ChromaDB + SQLite          |
+    +-----------------------------------------------------------+
+
+Todas las herramientas usadas son gratuitas / sin costo de licencia:
+
+    Componente             | Herramienta                          | Costo
+    -----------------------|---------------------------------------|-------
+    Backend / API          | FastAPI + Uvicorn                     | Gratis
+    Modelo de lenguaje     | Groq API (openai/gpt-oss-120b)        | Gratis (tier gratuito)
+    Embeddings             | sentence-transformers (multilingue)   | Gratis, corre local
+    Base vectorial         | ChromaDB (archivo local)              | Gratis
+    Base de contactos      | SQLite (archivo local)                | Gratis
+    Reconocimiento de voz  | Web Speech API del navegador          | Gratis (Chrome/Edge)
+    Sintesis de voz        | Web Speech API del navegador          | Gratis (Chrome/Edge)
+    Frontend               | HTML/CSS/JS puro                      | Gratis
+
+
+================================================================================
+3. TECNOLOGIAS UTILIZADAS (STACK)
+================================================================================
+
+Backend (Python 3.13):
+  - FastAPI 0.141        Framework web para la API REST.
+  - Uvicorn 0.52          Servidor ASGI que ejecuta la aplicacion.
+  - Pydantic 2.13         Validacion de datos (esquemas de peticion/respuesta).
+  - ChromaDB 1.5          Base de datos vectorial embebida (RAG).
+  - sentence-transformers 6.0  Genera los "embeddings" (vectores) del texto,
+                          usando el modelo multilingue
+                          "paraphrase-multilingual-MiniLM-L12-v2" (corre en
+                          la propia maquina, no depende de un servicio pago).
+  - Groq (SDK oficial 1.7) Cliente para llamar al LLM openai/gpt-oss-120b
+                          alojado en la nube de Groq (inferencia gratuita
+                          y muy rapida sobre hardware LPU).
+  - pypdf 6.18            Extraccion de texto de archivos PDF.
+  - python-docx 1.2       Extraccion de texto de archivos Word (.docx).
+  - python-dotenv 1.2     Carga de variables de entorno desde el archivo .env.
+  - python-multipart      Soporte de FastAPI para subir archivos (multipart/
+                          form-data) desde el panel de administracion.
+  - sqlite3 (libreria estandar de Python) - base de datos de contactos.
+
+Frontend (sin frameworks, "vanilla"):
+  - HTML5 + CSS3 + JavaScript (ES6+).
+  - Web Speech API: SpeechRecognition (voz -> texto) y SpeechSynthesis
+    (texto -> voz), ambas nativas del navegador, sin backend ni licencias.
+  - <video> HTML5 para el avatar animado del buho (3 clips MP4 sin audio).
+
+Herramientas de desarrollo / infraestructura:
+  - ffmpeg: edicion de los videos del avatar (eliminacion de audio, extraccion
+    de fotogramas para el "poster" de reserva).
+  - Entorno virtual de Python (venv) para aislar las dependencias.
+  - Chrome DevTools Protocol (CDP) + Node.js: usados durante el desarrollo
+    para automatizar pruebas reales del frontend en un navegador headless
+    (verificar tamanos, temporizacion de videos, errores de consola, etc.)
+    sin depender solo de inspeccion manual.
+
+
+================================================================================
+4. ESTRUCTURA DE CARPETAS DEL PROYECTO
+================================================================================
+
+Tesisproy/
+|-- backend/
+|   |-- main.py            API FastAPI: sirve el frontend y expone los
+|   |                      endpoints /api/chat, /api/health y el router
+|   |                      de administracion. Incluye un middleware que
+|   |                      fuerza "Cache-Control: no-store" para evitar
+|   |                      que el navegador use versiones viejas en cache.
+|   |-- config.py          Lectura de variables de entorno (.env): claves,
+|   |                      modelos, rutas, limites.
+|   |-- schemas.py         Modelos Pydantic (contratos de datos) de la API.
+|   |-- admin.py           Endpoints del panel de administracion
+|   |                      (subir/listar/borrar/reindexar documentos,
+|   |                      listar contactos extraidos).
+|   |-- db.py              Acceso a la base de datos SQLite de contactos.
+|   \-- rag/
+|       |-- store.py       Cliente de ChromaDB (crear/resetear la coleccion).
+|       |-- ingest.py      Lee documentos, los divide en fragmentos
+|       |                  ("chunking"), los indexa en ChromaDB y extrae
+|       |                  sus datos de contacto hacia SQLite.
+|       |-- extract.py     Expresiones regulares para detectar correos,
+|       |                  telefonos/extensiones y enlaces en un texto.
+|       \-- llm.py         Logica RAG: recupera contexto de ChromaDB + SQLite
+|                          y genera la respuesta final llamando a Groq.
+|
+|-- frontend/
+|   |-- index.html         Interfaz principal (chat con el buho).
+|   |-- admin.html         Panel de administracion (carga de documentos).
+|   |-- css/
+|   |   |-- style.css      Estilos compartidos + modo oscuro + animaciones.
+|   |   \-- admin.css      Estilos propios del panel de administracion.
+|   |-- js/
+|   |   |-- chat.js        Logica del chat, voz (STT/TTS), avatar en video,
+|   |   |                  modo oscuro.
+|   |   \-- admin.js       Logica de subida/listado/borrado/reindexado y
+|   |                      tabla de contactos detectados.
+|   |-- animaciones/
+|   |   |-- saludar.mp4    Video de saludo (se reproduce una vez al cargar).
+|   |   |-- reposo.mp4     Video de reposo/idle (en bucle).
+|   |   |-- hablar.mp4     Video de "hablando" (en bucle mientras responde).
+|   |   \-- poster.jpg     Fotograma de reserva mientras carga el video.
+|   \-- assets/
+|       \-- buho.svg        Logo/icono del buho (usado en el header de admin).
+|
+|-- documentos/            Carpeta donde viven los documentos oficiales de
+|                          la facultad (PDF, DOCX, TXT o Markdown). Se puede
+|                          poblar copiando archivos aqui o subiendolos desde
+|                          el panel /admin. Es la UNICA fuente de verdad del
+|                          buho: si algo no esta aqui, el buho no lo sabe.
+|
+|-- chroma_db/              Se genera automaticamente: base de datos vectorial
+|                          (embeddings de los fragmentos de los documentos).
+|-- utemito_data.db         Se genera automaticamente: base de datos SQLite
+|                          con los contactos extraidos.
+|-- venv/                  Entorno virtual de Python (dependencias aisladas).
+|-- requirements.txt       Lista de dependencias de Python.
+|-- .env / .env.example    Variables de entorno (claves y configuracion).
+\-- README.md              Guia de instalacion y uso.
+
+
+================================================================================
+5. FLUJO DE DATOS - INDEXADO DE UN DOCUMENTO (ingesta / "ingest")
+================================================================================
+
+Ocurre cada vez que se sube un documento (por el panel /admin o copiandolo a
+la carpeta documentos/ y ejecutando "python -m backend.rag.ingest").
+
+  1. LECTURA: se extrae el texto plano del archivo segun su extension
+     (.txt/.md se leen directo, .pdf con pypdf, .docx con python-docx).
+
+  2. TROCEADO ESTRUCTURADO ("chunking"): el texto se divide en fragmentos de
+     ~900 caracteres, pero NO se corta a ciegas. El algoritmo:
+       - separa el texto en bloques (cada encabezado Markdown y cada parrafo
+         es un bloque independiente),
+       - agrupa bloques bajo su encabezado hasta llegar al tamano objetivo,
+       - arrastra el titulo de la seccion vigente al inicio de cada fragmento
+         nuevo, para que un fragmento nunca "pierda" el contexto de a que
+         tramite pertenece,
+       - NUNCA divide un bloque que contiene un correo, telefono o enlace por
+         la mitad (para no truncar un dato de contacto entre dos fragmentos).
+
+  3. EXTRACCION DE CONTACTOS: sobre cada fragmento se corren expresiones
+     regulares (backend/rag/extract.py) que detectan:
+       - correos electronicos,
+       - telefonos y extensiones,
+       - enlaces (URLs) -- excluyendo automaticamente los enlaces de
+         "edicion" de Google Docs/Drive, que son privados y nunca funcionan
+         para un tercero (residuo comun al exportar un documento de Google
+         Docs a PDF).
+     Estos datos se guardan en la tabla SQLite `contactos`, junto con el
+     nombre del documento y la seccion de la que salieron.
+
+  4. EMBEDDING + INDEXADO VECTORIAL: cada fragmento de texto se convierte en
+     un vector numerico (embedding) usando el modelo local
+     "paraphrase-multilingual-MiniLM-L12-v2", y se guarda en ChromaDB junto
+     con metadatos (nombre del archivo, numero de fragmento, seccion).
+
+  5. REEMPLAZO LIMPIO: antes de insertar, se borran los fragmentos y
+     contactos previos de ese mismo archivo (por nombre), para que al
+     reemplazar un documento no queden datos "huerfanos" de una version vieja.
+
+
+================================================================================
+6. FLUJO DE DATOS - RESPONDER UNA PREGUNTA (retrieval + generation)
+================================================================================
+
+Ocurre en cada mensaje que el estudiante envia (POST /api/chat).
+
+  1. RETRIEVAL (recuperacion): la pregunta del estudiante se convierte
+     tambien en un embedding, y ChromaDB devuelve los 5 fragmentos (TOP_K=5,
+     configurable) cuyo vector esta mas cerca (similitud de coseno) al de la
+     pregunta -- sin importar de que documento sean.
+
+  2. Se anaden (si estan configuradas) las fuentes marcadas como
+     "imprescindibles" via ALWAYS_INCLUDE_SOURCES (por defecto, ninguna).
+
+  3. ARMADO DEL CONTEXTO: se concatenan los fragmentos recuperados, cada uno
+     con su etiqueta [Fuente: archivo.pdf | Seccion: ...]. Ademas, se
+     consultan en SQLite los contactos YA EXTRAIDOS que pertenecen
+     unicamente a esos documentos recuperados (nunca de otros), y se agregan
+     en un bloque aparte "DATOS DE CONTACTO" para que el modelo los pueda
+     citar tal cual, sin tener que volver a leerlos del texto crudo.
+
+  4. GENERATION (generacion): se envia a la API de Groq (modelo
+     openai/gpt-oss-120b) un mensaje con:
+       - un PROMPT DE SISTEMA que fija las reglas de comportamiento del
+         buho (ver seccion 7),
+       - el historial reciente de la conversacion (ultimos 6 turnos),
+       - el contexto recuperado + la pregunta del estudiante.
+
+  5. La respuesta del modelo se devuelve al frontend junto con la lista de
+     "fuentes" (nombres de archivo) usadas, que se muestran como etiquetas
+     debajo de la respuesta en el chat.
+
+  6. En el navegador: el texto se muestra en la burbuja de chat (con enlaces
+     y correos convertidos en links clicables) y, si el modo de voz esta
+     activo, se lee en voz alta con SpeechSynthesis.
+
+
+================================================================================
+7. REGLAS DE COMPORTAMIENTO DEL MODELO (PROMPT DE SISTEMA)
+================================================================================
+
+El "prompt de sistema" (backend/rag/llm.py) es el conjunto de instrucciones
+fijas que se le da al modelo de lenguaje antes de cada pregunta. Es la pieza
+clave que evita que el buho "invente" informacion. Resume sus reglas:
+
+  - Responde siempre en espanol, de forma amable y cercana.
+  - Se basa EXCLUSIVAMENTE en el contexto recuperado. Nunca usa conocimiento
+    externo ni supuestos, y nunca inventa fechas, requisitos, montos,
+    correos, telefonos ni enlaces que no esten en ese contexto.
+  - El sistema de busqueda a veces recupera fragmentos que NO tienen
+    relacion real con la pregunta (son solo los "mas parecidos" de lo que
+    hay disponible, no necesariamente relevantes). El modelo debe evaluar si
+    el contexto responde de verdad la pregunta especifica antes de usarlo.
+  - Si la respuesta especifica no esta en el contexto (o el contexto es de
+    un tramite distinto), lo dice con honestidad ("No tengo esa informacion
+    exacta en mis documentos") y sugiere acudir a Secretaria Academica de la
+    FCI o a Bienestar Estudiantil de la UTM MENCIONANDOLOS SOLO POR NOMBRE,
+    SIN dar ningun correo/telefono/enlace de otro tramite aunque aparezca en
+    el contexto (evita el caso real detectado en pruebas: dar un enlace o
+    correo de un tramite distinto al preguntado, que confunde al estudiante).
+  - Solo cuando el contexto SI responde la pregunta, y contiene datos de
+    contacto relacionados con ESE tramite, los reproduce EXACTAMENTE como
+    aparecen (nunca los modifica ni corrige su formato).
+  - Responde en texto plano apto para una burbuja de chat: sin Markdown
+    (nada de "###", "**negritas**", tablas), en parrafos y listas simples.
+  - La temperatura del modelo se fija baja (0.2) para privilegiar respuestas
+    consistentes y apegadas al contexto por encima de la creatividad.
+
+
+================================================================================
+8. BASES DE DATOS DEL SISTEMA
+================================================================================
+
+El proyecto usa DOS bases de datos, cada una para lo que mejor resuelve,
+ambas 100% locales (un solo archivo, sin instalar ningun servidor aparte):
+
+  8.1 ChromaDB (chroma_db/) -- BASE VECTORIAL
+      Guarda cada fragmento de texto junto con su "embedding" (vector
+      numerico de cientos de dimensiones que representa su significado).
+      Permite la busqueda semantica: encontrar fragmentos "parecidos en
+      significado" a la pregunta, no solo coincidencias exactas de palabras.
+      Es el corazon del RAG.
+
+  8.2 SQLite (utemito_data.db) -- BASE RELACIONAL DE CONTACTOS
+      Una sola tabla, `contactos`:
+          id (INTEGER, autoincremental)
+          documento (TEXT)   -- nombre del archivo de origen
+          tipo (TEXT)        -- "correo" | "telefono" | "enlace"
+          valor (TEXT)       -- el dato tal cual aparece en el documento
+          seccion (TEXT)     -- titulo de la seccion de la que se extrajo
+          UNIQUE(documento, tipo, valor, seccion)
+      Guarda, de forma estructurada y consultable, los datos de contacto ya
+      extraidos de los documentos. El panel de administracion la muestra en
+      una tabla ("Contactos y enlaces detectados") para verificar que la
+      extraccion funciono bien, y el modulo de generacion de respuestas la
+      consulta para poder citar contactos exactos sin re-escanear texto en
+      cada pregunta.
+
+  Justificacion de usar SQLite y no un gestor como PostgreSQL: el sistema
+  es de un solo servidor / un solo proceso (tipico de un proyecto de tesis o
+  de una facultad que lo despliega en un solo servicio). SQLite no requiere
+  instalar ni administrar un servidor de base de datos aparte, ni configurar
+  credenciales de red: es un archivo local, igual de simple que ChromaDB
+  (que tambien es un archivo local). PostgreSQL solo aportaria valor si en
+  el futuro se necesitaran múltiples procesos escribiendo concurrentemente
+  o un acceso remoto multiusuario a la base -- no es el caso actual.
+
+
+================================================================================
+9. PANEL DE ADMINISTRACION (/admin)
+================================================================================
+
+Pagina web independiente pensada para que el personal de la facultad (no
+necesariamente programadores) mantenga la base de conocimiento sin tocar la
+terminal ni el codigo. Incluye:
+
+  - Subida de documentos por arrastrar-y-soltar o seleccionando archivos
+    (.md, .txt, .pdf, .docx), con validacion de formato y de tamano maximo
+    (20 MB por archivo, configurable). Si el nombre ya existe, se reemplaza.
+  - Indexado automatico apenas se sube un archivo (no hace falta ningun
+    paso manual adicional).
+  - Tabla de documentos: nombre, tamano, numero de fragmentos indexados y
+    estado (indexado / sin indexar / archivo faltante), con boton de borrar.
+  - Tabla de "Contactos y enlaces detectados": muestra documento, seccion,
+    tipo y valor de cada correo/telefono/enlace ya extraido -- para poder
+    verificar visualmente que la extraccion automatica funciono bien.
+  - Boton "Reindexar todo": borra y reconstruye toda la base vectorial y de
+    contactos desde cero a partir de lo que haya en la carpeta documentos/.
+  - Acceso opcionalmente restringido por token: si se define la variable de
+    entorno ADMIN_TOKEN, el panel exige ese token (cabecera X-Admin-Token)
+    antes de mostrar nada. Si se deja vacia, el panel queda abierto (comodo
+    para desarrollo local; no recomendado para produccion sin control de
+    acceso adicional).
+
+Endpoints REST que expone (backend/admin.py), todos bajo /api/admin:
+    GET    /documents            lista los documentos y su estado
+    POST   /upload                sube uno o mas archivos y los indexa
+    DELETE /documents/{nombre}    borra un documento (archivo + indices)
+    POST   /reindex               reindexa todo desde cero
+    GET    /contacts              lista los contactos extraidos
+
+
+================================================================================
+10. FUNCIONES DE VOZ (HABLAR CON UTEMITO)
+================================================================================
+
+Implementadas 100% con la Web Speech API nativa del navegador (sin backend
+ni claves de API adicionales, por eso son gratuitas):
+
+  - Reconocimiento de voz (STT - Speech To Text): el boton de microfono
+    junto al campo de texto dicta una sola pregunta; se transcribe y se
+    envia como un mensaje normal.
+  - Modo de conversacion continua ("Hablar con Utemito"): activa un dialogo
+    de ida y vuelta -- el estudiante habla, se transcribe, se envia la
+    pregunta, se obtiene la respuesta, se lee en voz alta, y al terminar de
+    hablar vuelve a escuchar automaticamente sin que el estudiante toque el
+    teclado. Incluye reintentos automaticos (hasta 5 seguidos) ante
+    silencios o errores temporales, y se detiene solo ante errores
+    permanentes (permiso de microfono denegado, sin conexion al servicio,
+    etc.), mostrando un mensaje explicativo en cada caso.
+  - Sintesis de voz (TTS - Text To Speech): lee la respuesta en voz alta.
+    Se ajusto la velocidad (1.15x, un poco mas fluida que el ritmo por
+    defecto) y el tono (0.85, mas grave) e intenta elegir automaticamente
+    una voz en espanol de nombre masculino y, si esta disponible, de tipo
+    "Online/Natural/Neural" (las voces mas humanas que trae Windows/Edge
+    modernos) en vez de las voces clasicas mas roboticas. Al leer, no
+    deletrea URLs ni correos (los reemplaza por frases como "el enlace que
+    aparece en pantalla") para que no suene forzado.
+
+  Compatibilidad: funciona de forma confiable solo en Google Chrome y
+  Microsoft Edge (navegadores donde Google expone la clave necesaria para
+  el servicio de reconocimiento de voz en la nube). Firefox y Safari no
+  soportan bien esta API, y Brave la bloquea a proposito por privacidad. En
+  todos esos casos, el sistema detecta la falta de soporte, deshabilita
+  visualmente los botones de voz (se ven en gris) y muestra un aviso
+  explicando por que -- el chat de texto sigue funcionando con normalidad.
+
+  Requisito tecnico: el microfono solo funciona en "contexto seguro"
+  (localhost/127.0.0.1 o HTTPS). Si el sistema se despliega en internet, el
+  hosting debe servir la app por HTTPS.
+
+
+================================================================================
+11. AVATAR ANIMADO DEL BUHO (VIDEO)
+================================================================================
+
+El buho "Utemito" se muestra como un video circular pequeno (190x190 px) en
+el panel izquierdo del chat, con tres estados que se encadenan segun lo que
+esta pasando:
+
+  1. saludar.mp4  -> se reproduce UNA vez, al entrar o recargar la pagina.
+  2. reposo.mp4   -> arranca automaticamente al terminar el saludo, y queda
+                     en bucle como estado de espera/inactividad (tambien
+                     mientras el sistema esta "pensando" la respuesta).
+  3. hablar.mp4   -> se activa en bucle mientras se muestra/lee la
+                     respuesta (con voz activada, se sincroniza con la
+                     duracion real de la sintesis de voz); al terminar,
+                     vuelve automaticamente a reposo.mp4.
+
+Los tres videos se editaron con ffmpeg para eliminarles la pista de audio
+(no la tenian que usar: si el video tuviera sonido propio, se superpondria
+con la voz de la respuesta y sonaria mal). El elemento <video> tiene ademas
+un "poster" (fotograma de reserva) para que nunca se vea un espacio vacio
+mientras el video carga. El marco es fijo en pixeles (190x190, circular),
+independiente de la resolucion de los videos originales, para que nunca
+pueda desbordarse ni ocupar toda la pantalla en ningun dispositivo.
+
+
+================================================================================
+12. MODO OSCURO
+================================================================================
+
+Boton (icono de luna/sol) en la cabecera de la pagina principal, junto al
+boton "Subir documentos". Alterna un atributo `data-theme="dark"` en la
+etiqueta <html>; las variables de color CSS (fondo, texto, paneles, burbujas
+de chat) se redefinen para ese caso. La preferencia se guarda en
+localStorage del navegador, por lo que se mantiene entre recargas y tambien
+se respeta al entrar al panel de administracion (aunque el boton de cambio
+solo existe en la pagina principal). Se aplica antes de pintar la pagina
+(mediante un pequeno script en el <head>) para evitar parpadeos visuales.
+
+
+================================================================================
+13. SEGURIDAD Y CONSIDERACIONES DE DESARROLLO
+================================================================================
+
+  - CORS abierto (allow_origins=["*"]): adecuado para desarrollo local; en
+    un despliegue real conviene restringirlo al dominio publico del sitio.
+  - Cache-Control: no-store en todas las respuestas del servidor: evita que
+    el navegador se quede con una version vieja del HTML/CSS/JS cacheada
+    (una fuente comun de bugs confusos durante el desarrollo, donde parecia
+    que un cambio "no se aplicaba").
+  - Panel de administracion protegible por token (ADMIN_TOKEN): al no exigir
+    usuario/clave por estudiante, no hay un sistema de autenticacion de
+    usuarios (mencionado como mejora futura en la seccion 15); el token es
+    un control minimo para no dejar el panel de carga de documentos abierto
+    a cualquiera en un despliegue publico.
+  - La clave de la API de Groq (GROQ_API_KEY) vive solo en el archivo
+    .env local (excluido del control de versiones via .gitignore) y nunca
+    se expone al navegador: todas las llamadas a Groq las hace el backend.
+  - Validacion de archivos subidos: solo se aceptan las extensiones
+    soportadas (.md, .txt, .pdf, .docx), se usa unicamente el nombre del
+    archivo (sin rutas) al guardarlo, y se limita el tamano maximo por
+    archivo (20 MB por defecto) para evitar cargas abusivas.
+
+
+================================================================================
+14. INSTALACION Y EJECUCION (RESUMEN)
+================================================================================
+
+  1. Crear el entorno virtual e instalar dependencias:
+         python -m venv venv
+         venv\Scripts\Activate.ps1        (PowerShell, Windows)
+         pip install -r requirements.txt
+
+  2. Configurar variables de entorno: copiar .env.example a .env y colocar
+     la clave gratuita de Groq (GROQ_API_KEY), obtenida en
+     https://console.groq.com
+
+  3. Cargar los documentos oficiales de la facultad: subirlos desde
+     http://localhost:8000/admin (recomendado) o copiarlos a la carpeta
+     documentos/ y ejecutar:
+         python -m backend.rag.ingest
+
+  4. Levantar el servidor:
+         uvicorn backend.main:app --reload
+
+  5. Abrir el navegador en http://localhost:8000 (chat) o
+     http://localhost:8000/admin (panel de administracion).
+
+  Variables de entorno principales (.env):
+      GROQ_API_KEY            clave de la API de Groq (obligatoria)
+      GROQ_MODEL              modelo de Groq a usar (por defecto
+                               openai/gpt-oss-120b)
+      EMBEDDING_MODEL          modelo de embeddings local (multilingue)
+      TOP_K                    numero de fragmentos recuperados por pregunta
+      ALWAYS_INCLUDE_SOURCES   documentos que siempre se incluyen en el
+                               contexto (vacio por defecto)
+      ADMIN_TOKEN              token opcional para proteger /admin
+      MAX_UPLOAD_MB            tamano maximo por archivo subido
+      CHROMA_PATH / DOCUMENTOS_PATH / DB_PATH   rutas de las bases de datos
+                               y de los documentos (por defecto, dentro del
+                               propio proyecto)
+
+
+================================================================================
+15. LIMITACIONES CONOCIDAS Y TRABAJO FUTURO
+================================================================================
+
+Limitaciones actuales:
+  - La deteccion de telefonos por expresion regular no cubre todos los
+    formatos posibles (por ejemplo, un numero escrito como "2632-677" sin
+    la palabra "ext" puede no capturarse en la tabla de contactos
+    estructurada; sin embargo, el texto completo del fragmento original
+    SIEMPRE se le pasa al modelo, asi que la respuesta final normalmente
+    igual incluye el dato completo).
+  - La busqueda semantica (ChromaDB) no siempre distingue con un simple
+    umbral numerico si un resultado es realmente relevante o no; esa
+    responsabilidad se delega explicitamente al modelo de lenguaje mediante
+    las reglas del prompt de sistema (seccion 7).
+  - La voz (reconocimiento y sintesis) solo funciona en Chrome y Edge, por
+    limitaciones de la Web Speech API en otros navegadores.
+  - No hay autenticacion de estudiantes ni historial de conversaciones
+    persistente entre sesiones (cada recarga de pagina empieza de cero).
+
+Posibles mejoras futuras (trabajo futuro de la tesis):
+  - Autenticacion institucional de estudiantes.
+  - Historial de conversaciones y metricas de las preguntas mas frecuentes,
+    para detectar que informacion falta documentar.
+  - Voces de sintesis mas naturales mediante un servicio de TTS neuronal en
+    la nube (ej. ElevenLabs), en vez de depender de las voces del sistema
+    operativo del usuario.
+  - Soporte multi-idioma (ingles) para estudiantes de intercambio.
+  - Streaming de la respuesta del modelo (mostrar el texto palabra por
+    palabra a medida que se genera, en vez de esperar la respuesta completa).
+  - Mejorar la deteccion de telefonos con formatos variados.
+
+
+================================================================================
+16. GLOSARIO DE TERMINOS TECNICOS
+================================================================================
+
+  RAG (Retrieval Augmented Generation): tecnica de IA que combina un
+      buscador de informacion con un modelo de lenguaje. En vez de que el
+      modelo responda solo con lo que "aprendio" durante su entrenamiento,
+      primero se recupera informacion externa relevante (en este caso, de
+      los documentos de la facultad) y se le da al modelo como contexto
+      para que la use al redactar la respuesta.
+
+  LLM (Large Language Model / Modelo de Lenguaje Grande): red neuronal
+      entrenada con enormes cantidades de texto, capaz de generar lenguaje
+      natural coherente. Aqui se usa el modelo "openai/gpt-oss-120b" servido
+      a traves de la API gratuita de Groq.
+
+  Embedding: representacion numerica (un vector de cientos de numeros) del
+      significado de un texto. Dos textos con significado parecido tienen
+      embeddings numericamente cercanos entre si, lo que permite hacer
+      busqueda "por significado" en vez de solo por coincidencia de palabras.
+
+  Base de datos vectorial: base de datos especializada en guardar y buscar
+      eficientemente embeddings por cercania/similitud. Aqui: ChromaDB.
+
+  Chunking (troceado): dividir un documento largo en fragmentos mas
+      pequenos antes de indexarlo, porque los modelos de embeddings y de
+      lenguaje funcionan mejor (y mas barato) con fragmentos acotados que
+      con documentos completos.
+
+  Prompt de sistema: instrucciones fijas que se le dan a un LLM antes de
+      cada conversacion, para fijar su rol, tono y reglas de comportamiento.
+
+  Token de acceso (ADMIN_TOKEN): clave secreta simple usada para restringir
+      el acceso a una parte de la aplicacion (aqui, el panel /admin), sin
+      necesidad de un sistema completo de usuarios y contrasenas.
+
+  Web Speech API: conjunto de interfaces que los navegadores modernos
+      exponen en JavaScript para reconocer voz (SpeechRecognition) y
+      sintetizar voz (SpeechSynthesis) sin necesidad de un servidor propio.
+
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================

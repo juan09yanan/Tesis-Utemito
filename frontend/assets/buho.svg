@@ -1,0 +1,86 @@
+<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" id="buho-svg">
+  <defs>
+    <radialGradient id="haloGrad" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#ffe08a"/>
+      <stop offset="100%" stop-color="#ffe08a00"/>
+    </radialGradient>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8873f"/>
+      <stop offset="100%" stop-color="#b85c1f"/>
+    </linearGradient>
+    <linearGradient id="birreteGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00cb51"/>
+      <stop offset="100%" stop-color="#006529"/>
+    </linearGradient>
+  </defs>
+
+  <ellipse cx="100" cy="115" rx="95" ry="95" fill="url(#haloGrad)"/>
+
+  <!-- Pata / rama -->
+  <ellipse cx="100" cy="205" rx="55" ry="8" fill="#5b3a29" opacity="0.35"/>
+
+  <!-- Alas -->
+  <g id="ala-izq">
+    <ellipse cx="48" cy="140" rx="22" ry="42" fill="#a8541c" transform="rotate(-18 48 140)"/>
+  </g>
+  <g id="ala-der">
+    <ellipse cx="152" cy="140" rx="22" ry="42" fill="#a8541c" transform="rotate(18 152 140)"/>
+  </g>
+
+  <!-- Cuerpo -->
+  <ellipse cx="100" cy="128" rx="58" ry="68" fill="url(#bodyGrad)"/>
+  <!-- Pancita -->
+  <ellipse cx="100" cy="140" rx="37" ry="48" fill="#fff4dc"/>
+  <!-- Plumas de la pancita -->
+  <g fill="#ffe2ab" opacity="0.9">
+    <path d="M85 110 q5 8 0 16 q-5 -8 0 -16 Z"/>
+    <path d="M100 108 q5 9 0 18 q-5 -9 0 -18 Z"/>
+    <path d="M115 110 q5 8 0 16 q-5 -8 0 -16 Z"/>
+    <path d="M92 132 q5 9 0 18 q-5 -9 0 -18 Z"/>
+    <path d="M108 132 q5 9 0 18 q-5 -9 0 -18 Z"/>
+  </g>
+
+  <!-- Corbatin verde UTM -->
+  <path d="M92 150 L100 160 L108 150 L100 145 Z" fill="#00983d"/>
+  <circle cx="100" cy="150" r="4" fill="#f5b301"/>
+
+  <!-- Orejas / mechones -->
+  <path d="M62 62 L74 90 L50 88 Z" fill="#a8541c"/>
+  <path d="M138 62 L126 90 L150 88 Z" fill="#a8541c"/>
+
+  <!-- Birrete (gorro de graduacion) - verde institucional UTM -->
+  <g id="birrete">
+    <rect x="80" y="42" width="40" height="8" rx="2" fill="#006529"/>
+    <polygon points="100,20 145,44 100,58 55,44" fill="url(#birreteGrad)"/>
+    <circle cx="100" cy="44" r="3.5" fill="#f5b301"/>
+    <line x1="100" y1="44" x2="118" y2="66" stroke="#f5b301" stroke-width="2.5"/>
+    <circle cx="118" cy="68" r="4" fill="#f5b301"/>
+  </g>
+
+  <!-- Cara -->
+  <circle cx="78" cy="112" r="26" fill="#fff8ea"/>
+  <circle cx="122" cy="112" r="26" fill="#fff8ea"/>
+
+  <!-- Ojos -->
+  <g id="ojo-izq">
+    <circle cx="78" cy="112" r="16" fill="#2b2b2b"/>
+    <circle cx="82" cy="107" r="4.5" fill="#ffffff"/>
+    <rect class="parpado" x="62" y="96" width="32" height="0" fill="#fff8ea"/>
+  </g>
+  <g id="ojo-der">
+    <circle cx="122" cy="112" r="16" fill="#2b2b2b"/>
+    <circle cx="126" cy="107" r="4.5" fill="#ffffff"/>
+    <rect class="parpado" x="106" y="96" width="32" height="0" fill="#fff8ea"/>
+  </g>
+
+  <!-- Cejas -->
+  <path d="M64 90 q14 -10 26 -2" stroke="#8a4415" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M136 90 q-14 -10 -26 -2" stroke="#8a4415" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- Pico -->
+  <polygon id="pico" points="94 122 106 122 100 136" fill="#f5b301"/>
+
+  <!-- Pies -->
+  <ellipse cx="82" cy="200" rx="12" ry="6" fill="#f5b301"/>
+  <ellipse cx="118" cy="200" rx="12" ry="6" fill="#f5b301"/>
+</svg>

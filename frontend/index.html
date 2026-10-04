@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Utemito - Asistente Virtual FCI-UTM</title>
+<script>
+  // Aplica el tema guardado ANTES de pintar la pagina, para evitar el
+  // parpadeo de claro->oscuro al recargar con el modo oscuro activado.
+  try {
+    if (localStorage.getItem('utemito_theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="/css/style.css?v=6">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="app-header">
+    <div class="header-info">
+      <h1>UTEMITO</h1>
+      <p>Asistente virtual de la Facultad de Ciencias Informáticas · UTM</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" id="themeToggleBtn" class="header-link theme-toggle-btn" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">🌙</button>
+      <a href="/admin" class="header-link">Subir documentos</a>
+    </div>
+  </header>
+
+  <main class="chat-layout">
+
+    <aside class="avatar-panel">
+      <div class="avatar-wrap" id="avatarWrap">
+        <video id="buhoVideo" class="buho-video" width="190" height="190" autoplay muted playsinline preload="auto" poster="/animaciones/poster.jpg"></video>
+      </div>
+      <p class="avatar-caption" id="avatarCaption">¡Hola! Soy Utemito 🦉<br>Pregúntame sobre trámites de la FCI-UTM</p>
+
+      <button type="button" class="voice-mode-btn" id="voiceModeBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+        <span id="voiceModeLabel">Hablar con Utemito</span>
+      </button>
+      <p class="voice-mode-hint" id="voiceModeHint" hidden></p>
+    </aside>
+
+    <section class="chat-panel">
+      <div class="messages" id="messages">
+        <div class="msg msg-bot">
+          <div class="bubble">
+            ¡Hola! Soy <strong>Utemito</strong>, el búho de la Facultad de Ciencias Informáticas de la UTM.
+            Estoy aquí para ayudarte con tus dudas sobre matrícula, certificados, becas, prácticas
+            preprofesionales, titulación y más. ¿En qué puedo ayudarte hoy?
+          </div>
+        </div>
+      </div>
+
+      <form class="chat-input" id="chatForm" autocomplete="off">
+        <input type="text" id="chatInput" placeholder="Escribe tu pregunta sobre trámites de la FCI..." maxlength="500" />
+        <button type="button" id="micBtn" aria-label="Preguntar por voz" title="Preguntar por voz">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/>
+          </svg>
+        </button>
+        <button type="submit" id="sendBtn" aria-label="Enviar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+            <path d="M3 20l18-8L3 4v6l12 2-12 2v6z" fill="currentColor"/>
+          </svg>
+        </button>
+      </form>
+    </section>
+
+  </main>
+</div>
+
+<script src="/js/chat.js?v=8"></script>
+</body>
+</html>
