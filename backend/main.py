@@ -5,6 +5,7 @@ frontend (HTML/CSS/JS) donde el estudiante conversa con "Utemito", el buho.
 Ejecutar con:
     uvicorn backend.main:app --reload
 """
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -15,6 +16,8 @@ from fastapi.staticfiles import StaticFiles
 from backend.admin import router as admin_router
 from backend.rag.llm import ask_buho
 from backend.schemas import ChatRequest, ChatResponse
+
+logger = logging.getLogger("utemito")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
@@ -33,9 +36,13 @@ app.add_middleware(
 async def sin_cache(request, call_next):
     """Evita que el navegador se quede con una version vieja del HTML/JS/CSS
     en cache (fuente de bugs confusos tipo 'no aparece' al editar el frontend
-    durante el desarrollo)."""
+    durante el desarrollo). Solo los recursos pesados y estables (animaciones e
+    imagenes) se cachean una semana; la API y el HTML/JS/CSS nunca."""
     response = await call_next(request)
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    if request.url.path.startswith(("/animaciones/", "/assets/")):
+        response.headers["Cache-Control"] = "public, max-age=604800"
+    else:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     return response
 
 app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
@@ -67,9 +74,17 @@ def chat(req: ChatRequest):
         result = ask_buho(req.message, history=history)
         return ChatResponse(**result)
     except RuntimeError as exc:
+        # Errores de configuracion conocidos (p. ej. falta GROQ_API_KEY): el
+        # mensaje esta escrito por nosotros y es seguro mostrarlo.
+        logger.error("Error de configuracion en /api/chat: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Error inesperado: {exc}")
+    except Exception:
+        # El detalle tecnico queda en el log del servidor, no se filtra al cliente.
+        logger.exception("Error inesperado en /api/chat")
+        raise HTTPException(
+            status_code=500,
+            detail="Ocurrio un error al procesar tu pregunta. Intentalo de nuevo en un momento.",
+        )
 
 
 @app.get("/api/health")

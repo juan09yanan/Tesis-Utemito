@@ -32,9 +32,26 @@ ALWAYS_INCLUDE_SOURCES = [
     if s.strip()
 ]
 
-# Token opcional para proteger el panel de administracion (/admin y /api/admin/*).
-# Si se deja vacio, el panel queda abierto (util en local; NO recomendado en produccion).
+# Token para proteger el panel de administracion (/admin y /api/admin/*).
+# Si se deja vacio, la API de administracion RECHAZA todas las peticiones
+# (falla cerrado). Solo para desarrollo local se puede abrir explicitamente con
+# ALLOW_INSECURE_ADMIN=true. NUNCA lo actives en produccion.
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
+ALLOW_INSECURE_ADMIN = os.getenv("ALLOW_INSECURE_ADMIN", "").strip().lower() in ("1", "true", "yes", "si")
 
 # Tamano maximo por archivo subido desde el panel (MB).
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "20"))
+
+# ---------- Calidad de la recuperacion (RAG) ----------
+
+# Distancia coseno maxima (0 = identico, 2 = opuesto) para aceptar un fragmento
+# recuperado por similitud. Los que la superen se descartan, asi el LLM no recibe
+# contexto sin relacion con la pregunta. 0.85 se calibro con evaluacion/run_eval.py
+# para el modelo de embeddings por defecto (ver evaluacion/). Vacio = sin umbral.
+_max_dist = os.getenv("MAX_DISTANCE", "0.85").strip()
+MAX_DISTANCE = float(_max_dist) if _max_dist else None
+
+# Reescribe la pregunta usando el historial de la conversacion antes de buscar,
+# para que preguntas de seguimiento ("¿y cuando es?") encuentren su contexto.
+REWRITE_QUERY = os.getenv("REWRITE_QUERY", "true").strip().lower() in ("1", "true", "yes", "si")
+REWRITE_MODEL = os.getenv("REWRITE_MODEL", "") or GROQ_MODEL

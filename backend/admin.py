@@ -4,8 +4,13 @@ documentos que forman la base de conocimiento del buho (carpeta `documentos/` +
 base vectorial ChromaDB).
 
 Todas las rutas cuelgan de /api/admin y, si se define la variable de entorno
-ADMIN_TOKEN, exigen la cabecera  X-Admin-Token  con ese valor.
+ADMIN_TOKEN, exigen la cabecera  X-Admin-Token  con ese valor. Si no hay token
+configurado, se rechazan (salvo que ALLOW_INSECURE_ADMIN=true, solo para local).
 """
+import hmac
+import logging
+import shutil
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
@@ -27,6 +32,8 @@ from backend.schemas import (
     OperacionResponse,
 )
 
+logger = logging.getLogger("utemito.admin")
+
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 DOCS_DIR = Path(config.DOCUMENTOS_PATH)
@@ -34,8 +41,18 @@ MAX_UPLOAD_BYTES = config.MAX_UPLOAD_MB * 1024 * 1024
 
 
 def verificar_token(x_admin_token: str | None = Header(default=None)):
-    """Dependencia: valida el token de administrador si esta configurado."""
-    if config.ADMIN_TOKEN and x_admin_token != config.ADMIN_TOKEN:
+    """Dependencia: valida el token de administrador. Falla cerrado: sin
+    ADMIN_TOKEN configurado el panel no es accesible (salvo opt-in explicito)."""
+    if not config.ADMIN_TOKEN:
+        if config.ALLOW_INSECURE_ADMIN:
+            return
+        raise HTTPException(
+            status_code=503,
+            detail="Panel deshabilitado: define ADMIN_TOKEN en el archivo .env.",
+        )
+    # compare_digest evita filtrar el token por diferencias de tiempo.
+    recibido = (x_admin_token or "").encode("utf-8")
+    if not hmac.compare_digest(recibido, config.ADMIN_TOKEN.encode("utf-8")):
         raise HTTPException(status_code=401, detail="Token de administrador invalido o ausente.")
 
 
@@ -135,24 +152,40 @@ async def subir_documentos(
             continue
 
         destino = DOCS_DIR / nombre
-        try:
-            destino.write_bytes(contenido)
-            n = index_document(destino)
-            resultados.append(
-                ArchivoResultado(
-                    nombre=nombre,
-                    estado="ok",
-                    fragmentos=n,
-                    detalle="Indexado correctamente." if n else "Guardado, pero sin texto para indexar.",
+        # Se indexa primero una copia en un directorio temporal (con el mismo
+        # nombre, que es la "fuente" en la base) y solo si todo sale bien se
+        # reemplaza el archivo real. Asi un fallo nunca destruye la version previa.
+        with tempfile.TemporaryDirectory() as tmp:
+            staged = Path(tmp) / nombre
+            try:
+                staged.write_bytes(contenido)
+                n = index_document(staged)
+                shutil.move(str(staged), str(destino))
+                resultados.append(
+                    ArchivoResultado(
+                        nombre=nombre,
+                        estado="ok",
+                        fragmentos=n,
+                        detalle="Indexado correctamente." if n else "Guardado, pero sin texto para indexar.",
+                    )
                 )
-            )
-        except Exception as exc:  # noqa: BLE001
-            # Si fallo la indexacion no dejamos el archivo suelto sin indexar.
-            if destino.exists():
-                destino.unlink(missing_ok=True)
-            resultados.append(
-                ArchivoResultado(nombre=nombre, estado="error", detalle=f"Error al procesar: {exc}")
-            )
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("Fallo al procesar '%s'", nombre)
+                # Si ya existia una version previa, la dejamos intacta e
+                # intentamos restaurar su indexacion (index_document la pudo borrar).
+                if destino.is_file():
+                    try:
+                        index_document(destino)
+                    except Exception:  # noqa: BLE001
+                        logger.exception("No se pudo restaurar el indice de '%s'", nombre)
+                resultados.append(
+                    ArchivoResultado(
+                        nombre=nombre,
+                        estado="error",
+                        detalle="No se pudo procesar el archivo (revisa que no este corrupto). "
+                        + ("Se conservo la version anterior." if destino.is_file() else ""),
+                    )
+                )
 
     total = _listar_documentos().total_fragmentos
     return OperacionResponse(archivos=resultados, total_fragmentos=total)
