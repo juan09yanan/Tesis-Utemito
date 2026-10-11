@@ -1,0 +1,20 @@
+[
+  {"id": "req-01", "tipo": "en_alcance", "pregunta": "¿Qué requisitos necesito para la movilidad de carrera?", "claves": ["requerimientos"]},
+  {"id": "req-02", "tipo": "en_alcance", "pregunta": "¿Qué documentos debo presentar para cambiarme de carrera?", "claves": ["requerimientos"]},
+  {"id": "proc-01", "tipo": "en_alcance", "pregunta": "¿Cuál es el procedimiento para la movilidad de carrera?", "claves": ["procedimiento"]},
+  {"id": "proc-02", "tipo": "en_alcance", "pregunta": "¿Qué pasos debo seguir para solicitar el cambio de carrera?", "claves": ["procedimiento"]},
+  {"id": "crono-01", "tipo": "en_alcance", "pregunta": "¿Cuándo es la fecha de recepción de solicitudes de movilidad en el segundo semestre 2025?", "claves": ["1 de julio", "recepci"]},
+  {"id": "crono-02", "tipo": "en_alcance", "pregunta": "¿Cuándo son las matrículas ordinarias de los estudiantes que cambian de carrera?", "claves": ["matr"]},
+  {"id": "crono-03", "tipo": "en_alcance", "pregunta": "¿Cuándo inician las clases para quienes tienen movilidad aprobada?", "claves": ["inicio de clase", "22 de septiembre"]},
+  {"id": "crono-04", "tipo": "en_alcance", "pregunta": "¿Hasta cuándo puedo hacer la solicitud de movilidad en el primer semestre?", "claves": ["cronograma", "recepci"]},
+  {"id": "cont-01", "tipo": "en_alcance", "pregunta": "¿A qué correo escribo por temas de movilidad de carrera o disciplina?", "claves": ["comision.disciplina@utm.edu.ec"]},
+  {"id": "seg-01", "tipo": "seguimiento", "pregunta": "¿y cuándo es?", "historial": [{"role": "user", "content": "¿Cuál es la fecha de recepción de solicitudes de movilidad de carrera?"}, {"role": "assistant", "content": "La recepción de solicitudes de movilidad de carrera se realiza durante un periodo definido en el cronograma."}], "claves": ["cronograma", "recepci"]},
+  {"id": "seg-02", "tipo": "seguimiento", "pregunta": "¿qué debo presentar para eso?", "historial": [{"role": "user", "content": "Quiero cambiarme de carrera dentro de la UTM"}, {"role": "assistant", "content": "Puedes hacerlo mediante el proceso de movilidad de carrera."}], "claves": ["requerimientos"]},
+  {"id": "seg-03", "tipo": "seguimiento", "pregunta": "¿y a dónde escribo si tengo dudas?", "historial": [{"role": "user", "content": "¿Cuál es el procedimiento de movilidad de carrera?"}, {"role": "assistant", "content": "El procedimiento tiene varios pasos que inician con la solicitud en línea."}], "claves": ["@utm.edu.ec", "correo"]},
+  {"id": "fuera-01", "tipo": "fuera_de_alcance", "pregunta": "¿Cuál es la capital de Francia?"},
+  {"id": "fuera-02", "tipo": "fuera_de_alcance", "pregunta": "Dame una receta de encebollado manabita"},
+  {"id": "fuera-03", "tipo": "fuera_de_alcance", "pregunta": "¿Quién ganó el último mundial de fútbol?"},
+  {"id": "fuera-04", "tipo": "fuera_de_alcance", "pregunta": "Explícame cómo funciona la fotosíntesis"},
+  {"id": "fuera-05", "tipo": "fuera_de_alcance", "pregunta": "¿Cuánto cuesta un iPhone 15?"},
+  {"id": "fuera-06", "tipo": "fuera_de_alcance", "pregunta": "Escribe un poema sobre el mar"}
+]

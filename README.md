@@ -272,3 +272,28 @@ en el panel del servicio (no subas tu `.env` real a ningún repositorio público
 | Los botones de voz aparecen deshabilitados | Usa Chrome o Edge (Firefox/Safari no soportan bien la Web Speech API; en Brave se deshabilitan automáticamente porque esa función no funciona ahí). |
 | El micrófono no funciona en el sitio desplegado | El navegador exige HTTPS (o `localhost`) para acceder al micrófono; confirma que tu hosting sirva la app por HTTPS. |
 | Error "Sin conexión al servicio de reconocimiento de voz de Google" (`network`) | Casi siempre significa que usas un navegador que no es Chrome/Edge (ej. Brave, Opera). Prueba con Google Chrome o Microsoft Edge. |
+
+---
+
+## Calidad y evaluación del RAG
+
+- **Umbral de distancia (`MAX_DISTANCE`)**: se descartan los fragmentos poco
+  parecidos a la pregunta, de modo que una pregunta fuera de tema ya no recibe
+  contexto irrelevante.
+- **Reescritura con historial (`REWRITE_QUERY`)**: las preguntas de seguimiento
+  se convierten en consultas autónomas antes de buscar.
+- **Set de evaluación** (`evaluacion/`): mide la recuperación sin llamar al LLM
+  de respuesta. Úsalo antes y después de cada cambio al RAG:
+
+  ```bash
+  python -m evaluacion.run_eval -v          # resultado por pregunta
+  python -m evaluacion.run_eval --sweep     # barrido de umbrales
+  ```
+
+  Agrega tus propias preguntas a `evaluacion/preguntas.json` (campo `claves`:
+  texto que debe aparecer en el contexto recuperado).
+- **Tests**: `pip install -r requirements-dev.txt` y `pytest`.
+
+> **Importante (seguridad):** el panel `/admin` exige `ADMIN_TOKEN` en `.env`.
+> Sin token, la API de administración se rechaza. Solo para desarrollo local
+> puedes usar `ALLOW_INSECURE_ADMIN=true`.
