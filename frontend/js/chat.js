@@ -139,11 +139,53 @@ function renderMarkdown(raw) {
   return html;
 }
 
+function crearHora() {
+  const h = document.createElement('div');
+  h.className = 'hora';
+  h.textContent = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+  return h;
+}
+
+function crearAvatarMensaje() {
+  const a = document.createElement('div');
+  a.className = 'msg-avatar';
+  a.setAttribute('aria-hidden', 'true');
+  a.textContent = '🦉';
+  return a;
+}
+
+// Envuelve cada palabra en un <span> con retraso escalonado para que la
+// respuesta "aparezca" progresivamente. Conserva enlaces y negritas.
+function revelarPalabras(root) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodos = [];
+  while (walker.nextNode()) nodos.push(walker.currentNode);
+  const total = nodos.reduce((n, t) => n + (t.nodeValue.match(/\S+/g) || []).length, 0);
+  const paso = Math.min(40, 1800 / Math.max(total, 1)); // maximo ~1.8s en total
+  let i = 0;
+  nodos.forEach((nodo) => {
+    if (!nodo.nodeValue.trim()) return;
+    const frag = document.createDocumentFragment();
+    nodo.nodeValue.split(/(\s+)/).forEach((parte) => {
+      if (!parte) return;
+      if (/^\s+$/.test(parte)) { frag.appendChild(document.createTextNode(parte)); return; }
+      const span = document.createElement('span');
+      span.className = 'palabra';
+      span.style.animationDelay = `${Math.round(i++ * paso)}ms`;
+      span.textContent = parte;
+      frag.appendChild(span);
+    });
+    nodo.parentNode.replaceChild(frag, nodo);
+  });
+}
+
 function addUserMessage(text) {
   const div = document.createElement('div');
   div.className = 'msg msg-user';
   div.innerHTML = `<div class="msg-content"><div class="bubble"></div></div>`;
   div.querySelector('.bubble').textContent = text;
+  div.querySelector('.msg-content').appendChild(crearHora());
   messagesEl.appendChild(div);
   scrollToBottom();
 }
@@ -151,6 +193,7 @@ function addUserMessage(text) {
 function addBotMessage(text, fuentes) {
   const div = document.createElement('div');
   div.className = 'msg msg-bot';
+  div.appendChild(crearAvatarMensaje());
 
   const content = document.createElement('div');
   content.className = 'msg-content';
@@ -158,30 +201,39 @@ function addBotMessage(text, fuentes) {
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
   bubble.innerHTML = renderMarkdown(text);
+  revelarPalabras(bubble);
   content.appendChild(bubble);
 
   if (fuentes && fuentes.length) {
     const tagsWrap = document.createElement('div');
     tagsWrap.className = 'fuentes';
-    fuentes.forEach(f => {
+    fuentes.forEach((f, idx) => {
       const tag = document.createElement('span');
       tag.className = 'fuente-tag';
+      tag.style.animationDelay = `${400 + idx * 90}ms`;
       tag.textContent = f;
       tagsWrap.appendChild(tag);
     });
     content.appendChild(tagsWrap);
   }
 
+  content.appendChild(crearHora());
   div.appendChild(content);
   messagesEl.appendChild(div);
   scrollToBottom();
+  // Mientras se revelan las palabras la burbuja crece: mantiene la vista abajo.
+  const t0 = Date.now();
+  const seguir = setInterval(() => {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (Date.now() - t0 > 2200) clearInterval(seguir);
+  }, 120);
 }
 
 function addTypingIndicator() {
   const div = document.createElement('div');
   div.className = 'msg msg-bot';
   div.id = 'typingIndicator';
-  div.innerHTML = `<div class="msg-content"><div class="bubble"><span class="typing"><span></span><span></span><span></span></span></div></div>`;
+  div.innerHTML = `<div class="msg-avatar" aria-hidden="true">🦉</div><div class="msg-content"><div class="bubble"><span class="typing"><span></span><span></span><span></span></span></div></div>`;
   messagesEl.appendChild(div);
   scrollToBottom();
 }
@@ -211,6 +263,7 @@ async function sendMessage(text, opts = {}) {
     return;
   }
 
+  ocultarSugerencias();
   addUserMessage(text);
   history.push({ role: 'user', content: text });
 
@@ -258,6 +311,36 @@ async function sendMessage(text, opts = {}) {
     if (!opts.spoken) inputEl.focus();
     if (voiceModeActive) startListening();
   }
+}
+
+// ============ Sugerencias de preguntas ============
+
+const SUGERENCIAS = [
+  ['📝', '¿Cómo es el proceso de matrícula?'],
+  ['🎓', '¿Qué requisitos hay para titularme?'],
+  ['💸', '¿Cómo aplico a una beca?'],
+  ['💼', '¿Cómo hago las prácticas preprofesionales?'],
+];
+
+const sugerenciasEl = document.getElementById('sugerencias');
+
+function ocultarSugerencias() {
+  if (!sugerenciasEl || sugerenciasEl.classList.contains('saliendo')) return;
+  sugerenciasEl.classList.add('saliendo');
+  setTimeout(() => sugerenciasEl.remove(), 380);
+}
+
+if (sugerenciasEl) {
+  SUGERENCIAS.forEach(([emoji, pregunta]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sugerencia';
+    b.textContent = `${emoji} ${pregunta}`;
+    b.addEventListener('click', () => {
+      if (!sendBtn.disabled) sendMessage(pregunta);
+    });
+    sugerenciasEl.appendChild(b);
+  });
 }
 
 formEl.addEventListener('submit', (e) => {

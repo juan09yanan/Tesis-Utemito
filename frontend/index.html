@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#00983d">
 <title>Utemito - Asistente Virtual FCI-UTM</title>
 <script>
   // Aplica el tema guardado ANTES de pintar la pagina, para evitar el
@@ -13,15 +14,18 @@
     }
   } catch (e) {}
 </script>
-<link rel="stylesheet" href="/css/style.css?v=6">
+<link rel="stylesheet" href="/css/style.css?v=7">
 </head>
 <body>
+
+<div class="fondo-vivo" aria-hidden="true"><span></span><span></span><span></span></div>
 
 <div class="app">
 
   <header class="app-header">
+    <div class="brand-mark" aria-hidden="true">🦉</div>
     <div class="header-info">
-      <h1>UTEMITO</h1>
+      <h1>UTEMITO <span class="estado-en-linea"><i></i>En línea</span></h1>
       <p>Asistente virtual de la Facultad de Ciencias Informáticas · UTM</p>
     </div>
     <div class="header-actions">
@@ -33,9 +37,12 @@
   <main class="chat-layout">
 
     <aside class="avatar-panel">
-      <div class="avatar-wrap" id="avatarWrap">
-        <video id="buhoVideo" class="buho-video" width="190" height="190" autoplay muted playsinline preload="auto" poster="/animaciones/poster.jpg"></video>
+      <div class="avatar-stage">
+        <div class="avatar-wrap" id="avatarWrap">
+          <video id="buhoVideo" class="buho-video" width="190" height="190" autoplay muted playsinline preload="auto" poster="/animaciones/poster.jpg"></video>
+        </div>
       </div>
+      <div class="onda-voz" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <p class="avatar-caption" id="avatarCaption">¡Hola! Soy Utemito 🦉<br>Pregúntame sobre trámites de la FCI-UTM</p>
 
       <button type="button" class="voice-mode-btn" id="voiceModeBtn">
@@ -46,12 +53,16 @@
     </aside>
 
     <section class="chat-panel">
-      <div class="messages" id="messages">
+      <div class="messages" id="messages" aria-live="polite">
         <div class="msg msg-bot">
-          <div class="bubble">
-            ¡Hola! Soy <strong>Utemito</strong>, el búho de la Facultad de Ciencias Informáticas de la UTM.
-            Estoy aquí para ayudarte con tus dudas sobre matrícula, certificados, becas, prácticas
-            preprofesionales, titulación y más. ¿En qué puedo ayudarte hoy?
+          <div class="msg-avatar" aria-hidden="true">🦉</div>
+          <div class="msg-content">
+            <div class="bubble">
+              ¡Hola! Soy <strong>Utemito</strong>, el búho de la Facultad de Ciencias Informáticas de la UTM.
+              Estoy aquí para ayudarte con tus dudas sobre matrícula, certificados, becas, prácticas
+              preprofesionales, titulación y más. ¿En qué puedo ayudarte hoy?
+            </div>
+            <div class="sugerencias" id="sugerencias"></div>
           </div>
         </div>
       </div>
@@ -69,11 +80,12 @@
           </svg>
         </button>
       </form>
+      <p class="aviso-legal">Utemito responde con base en los documentos oficiales cargados. Verifica los datos importantes con Secretaría.</p>
     </section>
 
   </main>
 </div>
 
-<script src="/js/chat.js?v=8"></script>
+<script src="/js/chat.js?v=9"></script>
 </body>
 </html>
