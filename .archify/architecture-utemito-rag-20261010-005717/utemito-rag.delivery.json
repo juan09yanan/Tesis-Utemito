@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d3a881df-8c6d-44d3-bde8-21731fd08587",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\ediso\\OneDrive\\Escritorio\\PROYECTOS\\UTEMITO\\.archify\\architecture-utemito-rag-20261010-005717\\candidate.json",
+  "output": "C:\\Users\\ediso\\OneDrive\\Escritorio\\PROYECTOS\\UTEMITO\\.archify\\architecture-utemito-rag-20261010-005717\\utemito-rag.html",
+  "specification": {
+    "sha256": "b18cc437e621fa3afab684bbe055ec1faf415a1f1c515889759dfca71cc940bb",
+    "bytes": 5703
+  },
+  "artifact": {
+    "sha256": "1c9def5540ed65cdd331cfc4e21f6bf442cc78a47004fff5a7b8cec93cd45c25",
+    "bytes": 772292
+  }
+}

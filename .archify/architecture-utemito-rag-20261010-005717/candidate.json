@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Utemito: arquitectura RAG del asistente FCI-UTM",
+    "locale": "es",
+    "output": ".archify/architecture-utemito-rag-20261010-005717/utemito-rag.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/juan09yanan/Tesis-Utemito.git",
+      "provider": "github",
+      "revision": "cf1ff5ade916e343bc0273ec1d109f46625e194d"
+    }
+  },
+  "components": [
+    { "id": "student", "type": "external", "label": "Estudiante", "sublabel": "Navegador web", "pos": [40, 140], "size": [120, 64] },
+    { "id": "chatui", "type": "frontend", "label": "Chat del búho", "sublabel": "index.html · chat.js", "pos": [240, 140], "size": [150, 64],
+      "sources": [{ "path": "frontend/js/chat.js", "line": 224, "end_line": 228, "label": "fetch /api/chat" }] },
+    { "id": "api", "type": "backend", "label": "FastAPI", "sublabel": "backend/main.py :8000", "pos": [535, 140], "size": [150, 64],
+      "sources": [{ "path": "backend/main.py", "line": 60, "end_line": 70, "label": "POST /api/chat" }] },
+    { "id": "rag", "type": "backend", "label": "Motor RAG", "sublabel": "ask_buho · rag/llm.py", "pos": [780, 140], "size": [180, 64],
+      "sources": [{ "path": "backend/rag/llm.py", "line": 145, "end_line": 172, "label": "ask_buho" }] },
+    { "id": "groq", "type": "external", "label": "Groq API", "sublabel": "gpt-oss-120b (LLM)", "pos": [1060, 140], "size": [140, 64],
+      "sources": [{ "path": "backend/rag/llm.py", "line": 162, "end_line": 168, "label": "chat.completions" }] },
+    { "id": "chroma", "type": "database", "label": "ChromaDB", "sublabel": "chroma_db · embeddings", "pos": [690, 290], "size": [140, 64],
+      "sources": [{ "path": "backend/rag/store.py", "line": 15, "end_line": 27, "label": "PersistentClient" }] },
+    { "id": "sqlite", "type": "database", "label": "SQLite", "sublabel": "utemito_data.db", "pos": [910, 290], "size": [140, 64],
+      "sources": [{ "path": "backend/db.py", "line": 27, "end_line": 43, "label": "tabla contactos" }] },
+    { "id": "admin", "type": "external", "label": "Administrador", "sublabel": "Navegador web", "pos": [40, 470], "size": [120, 64] },
+    { "id": "adminui", "type": "frontend", "label": "Panel /admin", "sublabel": "admin.html · admin.js", "pos": [240, 470], "size": [150, 64],
+      "sources": [{ "path": "frontend/js/admin.js", "line": 37, "label": "cabecera X-Admin-Token" }] },
+    { "id": "router", "type": "backend", "label": "Router admin", "sublabel": "/api/admin/* · admin.py", "pos": [535, 470], "size": [150, 64],
+      "sources": [{ "path": "backend/admin.py", "line": 100, "end_line": 159, "label": "upload" }, { "path": "backend/admin.py", "line": 182, "end_line": 195, "label": "reindex" }] },
+    { "id": "ingest", "type": "backend", "label": "Indexador", "sublabel": "rag/ingest.py · extract", "pos": [780, 470], "size": [180, 64],
+      "sources": [{ "path": "backend/rag/ingest.py", "line": 169, "end_line": 203, "label": "index_document" }] },
+    { "id": "docs", "type": "database", "label": "documentos/", "sublabel": ".pdf .docx .md .txt", "pos": [535, 630], "size": [150, 64],
+      "sources": [{ "path": "backend/admin.py", "line": 139, "label": "write_bytes" }, { "path": "backend/rag/ingest.py", "line": 221, "end_line": 233, "label": "reindex_all" }] }
+  ],
+  "connections": [
+    { "id": "student-to-chat", "from": "student", "to": "chatui", "label": "pregunta" },
+    { "id": "chat-to-api", "from": "chatui", "to": "api", "label": "POST /api/chat", "variant": "emphasis" },
+    { "id": "api-to-rag", "from": "api", "to": "rag", "label": "ask_buho", "variant": "emphasis" },
+    { "id": "rag-to-groq", "from": "rag", "to": "groq", "label": "completion", "variant": "emphasis" },
+    { "id": "rag-to-chroma", "from": "rag", "to": "chroma", "label": "query top-K", "fromSide": "bottom", "toSide": "top" },
+    { "id": "rag-to-sqlite", "from": "rag", "to": "sqlite", "label": "contactos", "fromSide": "bottom", "toSide": "top" },
+    { "id": "admin-to-ui", "from": "admin", "to": "adminui", "label": "sube / borra" },
+    { "id": "ui-to-router", "from": "adminui", "to": "router", "label": "REST · token opc.", "variant": "security" },
+    { "id": "router-to-ingest", "from": "router", "to": "ingest", "label": "indexar" },
+    { "id": "router-to-docs", "from": "router", "to": "docs", "label": "write_bytes", "fromSide": "bottom", "toSide": "top" },
+    { "id": "ingest-to-docs", "from": "ingest", "to": "docs", "label": "lee archivos", "variant": "dashed", "fromSide": "bottom", "toSide": "right" },
+    { "id": "ingest-to-chroma", "from": "ingest", "to": "chroma", "label": "upsert", "fromSide": "top", "toSide": "bottom" },
+    { "id": "ingest-to-sqlite", "from": "ingest", "to": "sqlite", "label": "contactos", "fromSide": "top", "toSide": "bottom" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Pregunta del estudiante", "items": ["Recupera los fragmentos más cercanos en ChromaDB (TOP_K)", "Añade los contactos guardados en SQLite de esas fuentes", "Groq responde solo con ese contexto y se devuelven respuesta + fuentes", "Se envían como máximo los últimos 6 turnos de historial"] },
+    { "dot": "amber", "title": "Administración", "items": ["Subir, borrar y reindexar documentos desde /admin", "El token X-Admin-Token solo se exige si ADMIN_TOKEN está definido", "Alternativa por terminal: python -m backend.rag.ingest"] },
+    { "dot": "cyan", "title": "Persistencia local", "items": ["chroma_db/: vectores de los fragmentos (ignorada por git)", "utemito_data.db: correos, teléfonos y enlaces extraídos", "documentos/: archivos originales subidos"] }
+  ]
+}
