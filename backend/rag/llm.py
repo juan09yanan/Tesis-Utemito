@@ -228,6 +228,7 @@ def ask_buho(question: str, history: list[dict] | None = None) -> dict:
         messages=messages,
         temperature=0.2,
         max_tokens=700,
+        reasoning_effort=config.REASONING_EFFORT,
     )
 
     respuesta = completion.choices[0].message.content

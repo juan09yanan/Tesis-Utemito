@@ -8,7 +8,9 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+# Esfuerzo de razonamiento de los modelos gpt-oss: "low" responde mucho mas rapido.
+REASONING_EFFORT = os.getenv("REASONING_EFFORT", "low")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
 
 CHROMA_PATH = os.getenv("CHROMA_PATH", str(BASE_DIR / "chroma_db"))
@@ -19,7 +21,7 @@ COLLECTION_NAME = "utm_fci_conocimiento"
 # extraidos de los documentos. Un solo archivo local, sin instalar nada.
 DB_PATH = os.getenv("DB_PATH", str(BASE_DIR / "utemito_data.db"))
 
-TOP_K = int(os.getenv("TOP_K", "5"))
+TOP_K = int(os.getenv("TOP_K", "3"))
 
 # Documentos que SIEMPRE se anaden al contexto (ademas de los recuperados por
 # similitud), separados por coma. Vacio por defecto: el buho responde solo con
