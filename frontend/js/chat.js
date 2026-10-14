@@ -258,11 +258,16 @@ function setBotState(state) {
   }
 }
 
+let peticionesEnCurso = 0;
+
 async function sendMessage(text, opts = {}) {
   if (!text.trim()) {
     if (voiceModeActive) startListening();
     return;
   }
+
+  interrumpirVoz(); // si Utemito estaba hablando, se calla al llegar una nueva pregunta
+  peticionesEnCurso++;
 
   ocultarSugerencias();
   addUserMessage(text);
@@ -309,8 +314,9 @@ async function sendMessage(text, opts = {}) {
     avatarCaption.textContent = 'Algo salió mal. Intenta de nuevo.';
   } finally {
     sendBtn.disabled = false;
+    peticionesEnCurso--;
     if (!opts.spoken) inputEl.focus();
-    if (voiceModeActive) startListening();
+    if (voiceModeActive && peticionesEnCurso === 0) startListening();
   }
 }
 
@@ -504,6 +510,37 @@ function describeSpeechError(errorCode) {
   return mensajes[errorCode] || `Error de voz: ${errorCode}`;
 }
 
+// --- Interrupcion (barge-in): si el usuario habla o escribe mientras Utemito
+// responde por voz, Utemito se calla de inmediato y pasa a escucharlo. ---
+let speakingNow = false;      // Utemito esta hablando en este momento
+let interrupted = false;      // el usuario lo interrumpio (no restablecer el estado)
+let currentUtter = null;
+let textoHablado = '';        // lo que dice Utemito (para detectar su propio eco)
+let recognizing = false;      // hay un reconocimiento de voz activo
+
+function normalizarVoz(t) {
+  return (t || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// El microfono puede captar la propia voz de Utemito por los parlantes. Si casi
+// todas las palabras del texto escuchado estan en lo que Utemito esta diciendo,
+// es eco y no una interrupcion real del usuario.
+function esEcoDeUtemito(transcripcion) {
+  const palabras = normalizarVoz(transcripcion).split(' ').filter(Boolean);
+  if (!palabras.length) return true;
+  const hablado = new Set(normalizarVoz(textoHablado).split(' '));
+  const coinciden = palabras.filter((w) => hablado.has(w)).length;
+  return coinciden / palabras.length >= 0.7;
+}
+
+function interrumpirVoz() {
+  if (!speakingNow) return;
+  interrupted = true;
+  speakingNow = false;
+  if (speechSynthesisSupported) speechSynthesis.cancel();
+  setBotState(null);
+}
+
 function speak(text) {
   return new Promise((resolve) => {
     if (!speechSynthesisSupported) { resolve(); return; }
@@ -517,19 +554,30 @@ function speak(text) {
     if (!clean) { resolve(); return; }
 
     speechSynthesis.cancel();
+    interrupted = false;
+    textoHablado = clean;
     const utter = new SpeechSynthesisUtterance(clean);
+    currentUtter = utter;
     utter.lang = 'es-EC';
     if (spanishVoice) utter.voice = spanishVoice;
     utter.rate = 1.15; // un poco mas fluida que el ritmo por defecto (1.0)
     utter.pitch = 0.85; // tono un poco mas grave/masculino
 
     utter.onstart = () => {
+      speakingNow = true;
       setBotState('hablando');
-      avatarCaption.textContent = 'Utemito está hablando...';
+      avatarCaption.textContent = 'Utemito está hablando... (háblame para interrumpirlo)';
+      // Sigue escuchando el microfono mientras habla, para poder interrumpirlo.
+      if (voiceModeActive) startListening();
     };
     const finish = () => {
-      setBotState(null);
-      avatarCaption.innerHTML = DEFAULT_CAPTION;
+      // Si es una locucion vieja (cancelada por una nueva) o el usuario ya
+      // tomo el turno, no toques el estado: ya lo gestiona quien interrumpio.
+      if (utter === currentUtter && !interrupted) {
+        speakingNow = false;
+        setBotState(null);
+        avatarCaption.innerHTML = DEFAULT_CAPTION;
+      }
       resolve();
     };
     utter.onend = finish;
@@ -604,6 +652,16 @@ let listeningStartToken = 0;
 function startListening() {
   if (!voiceModeActive) return;
 
+  // Ya hay un reconocimiento vivo (el que escucha mientras Utemito habla):
+  // no crees otro, solo refleja que ahora toca escuchar.
+  if (recognizing) {
+    if (!speakingNow) {
+      avatarWrap.classList.add('escuchando');
+      avatarCaption.textContent = 'Te escucho... habla ahora 🎤';
+    }
+    return;
+  }
+
   // Token para asegurarnos de que solo haya un ciclo de escucha "vivo" a la vez:
   // si se programa una nueva llamada mientras otra ya arranco, esta se ignora.
   const myToken = ++listeningStartToken;
@@ -614,8 +672,10 @@ function startListening() {
   let handled = false;
   let lastErrorCode = null;
 
-  avatarWrap.classList.add('escuchando');
-  avatarCaption.textContent = 'Te escucho... habla ahora 🎤';
+  if (!speakingNow) {
+    avatarWrap.classList.add('escuchando');
+    avatarCaption.textContent = 'Te escucho... habla ahora 🎤';
+  }
 
   r.onresult = (e) => {
     let finalTranscript = '';
@@ -624,6 +684,13 @@ function startListening() {
       const transcript = e.results[i][0].transcript;
       if (e.results[i].isFinal) finalTranscript += transcript;
       else interimTranscript += transcript;
+    }
+    // Mientras Utemito habla: ignora su propio eco; si es el usuario, callalo.
+    if (speakingNow) {
+      if (esEcoDeUtemito(interimTranscript || finalTranscript)) return;
+      console.log('[voz:dialogo] interrupcion del usuario');
+      interrumpirVoz();
+      avatarWrap.classList.add('escuchando');
     }
     if (interimTranscript && !handled) {
       console.log('[voz:dialogo] texto parcial:', interimTranscript);
@@ -648,10 +715,18 @@ function startListening() {
   };
 
   r.onend = () => {
+    recognizing = false;
     if (handled) return;
-    avatarWrap.classList.remove('escuchando');
     if (myToken !== listeningStartToken) return; // ya se inicio otro ciclo, no dupliques
     if (!voiceModeActive) return;
+
+    // El reconocimiento termina solo tras unos segundos de silencio: mientras
+    // Utemito habla es normal, se reinicia sin contarlo como fallo.
+    if (speakingNow) {
+      setTimeout(() => { if (voiceModeActive && speakingNow) startListening(); }, 250);
+      return;
+    }
+    avatarWrap.classList.remove('escuchando');
 
     const ERRORES_PERMANENTES = ['not-allowed', 'service-not-allowed', 'network', 'audio-capture', 'language-not-supported'];
     if (ERRORES_PERMANENTES.includes(lastErrorCode)) {
@@ -672,8 +747,10 @@ function startListening() {
   };
 
   try {
+    recognizing = true;
     r.start();
   } catch (err) {
+    recognizing = false;
     console.error('No se pudo iniciar el reconocimiento de voz:', err);
     avatarWrap.classList.remove('escuchando');
     avatarCaption.textContent = 'No se pudo iniciar el micrófono: ' + err.message;
@@ -688,6 +765,8 @@ function stopVoiceMode() {
   if (voiceModeLabel) voiceModeLabel.textContent = 'Hablar con Utemito';
   if (activeRecognition) { try { activeRecognition.abort(); } catch (e) {} }
   if (speechSynthesisSupported) speechSynthesis.cancel();
+  speakingNow = false;
+  recognizing = false;
   avatarWrap.classList.remove('escuchando');
   setBotState(null);
   avatarCaption.innerHTML = DEFAULT_CAPTION;
