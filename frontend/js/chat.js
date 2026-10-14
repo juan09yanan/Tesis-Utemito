@@ -528,15 +528,31 @@ function normalizarVoz(t) {
 function esEcoDeUtemito(transcripcion) {
   const palabras = normalizarVoz(transcripcion).split(' ').filter(Boolean);
   if (!palabras.length) return true;
-  const hablado = new Set(normalizarVoz(textoHablado).split(' '));
-  const coinciden = palabras.filter((w) => hablado.has(w)).length;
-  return coinciden / palabras.length >= 0.7;
+  const habladas = normalizarVoz(textoHablado).split(' ').filter(Boolean);
+  if (!habladas.length) return false;
+  const set = new Set(habladas);
+  // El reconocedor suele "oir" mal el eco (cambia o corta palabras): una palabra
+  // cuenta como conocida si esta o si empieza igual que alguna dicha por Utemito.
+  const conocida = (w) =>
+    set.has(w) || (w.length >= 4 && habladas.some((h) => h.length >= 4 && (h.startsWith(w.slice(0, 4)) || w.startsWith(h.slice(0, 4)))));
+  const coinciden = palabras.filter(conocida).length;
+  return coinciden / palabras.length >= 0.5;
+}
+
+// Instante en que Utemito termino de hablar: durante unos segundos despues, el
+// reconocedor aun puede entregar el eco de su propia voz como "resultado final".
+let finHablaTs = 0;
+const VENTANA_ECO_MS = 4000;
+function enVentanaDeEco() {
+  return speakingNow || Date.now() - finHablaTs < VENTANA_ECO_MS;
 }
 
 function interrumpirVoz() {
   if (!speakingNow) return;
   interrupted = true;
   speakingNow = false;
+  finHablaTs = 0;       // el usuario tomo el turno: ya no hay ventana de eco
+  textoHablado = '';
   if (speechSynthesisSupported) speechSynthesis.cancel();
   setBotState(null);
 }
@@ -575,6 +591,7 @@ function speak(text) {
       // tomo el turno, no toques el estado: ya lo gestiona quien interrumpio.
       if (utter === currentUtter && !interrupted) {
         speakingNow = false;
+        finHablaTs = Date.now();
         setBotState(null);
         avatarCaption.innerHTML = DEFAULT_CAPTION;
       }
@@ -670,6 +687,7 @@ function startListening() {
   attachDiagnostics(r, 'dialogo');
   activeRecognition = r;
   let handled = false;
+  let sawEcho = false;
   let lastErrorCode = null;
 
   if (!speakingNow) {
@@ -686,11 +704,17 @@ function startListening() {
       else interimTranscript += transcript;
     }
     // Mientras Utemito habla: ignora su propio eco; si es el usuario, callalo.
-    if (speakingNow) {
-      if (esEcoDeUtemito(interimTranscript || finalTranscript)) return;
-      console.log('[voz:dialogo] interrupcion del usuario');
-      interrumpirVoz();
-      avatarWrap.classList.add('escuchando');
+    if (enVentanaDeEco()) {
+      if (esEcoDeUtemito(interimTranscript || finalTranscript)) {
+        sawEcho = true;
+        console.log('[voz:dialogo] eco de Utemito ignorado');
+        return;
+      }
+      if (speakingNow) {
+        console.log('[voz:dialogo] interrupcion del usuario');
+        interrumpirVoz();
+        avatarWrap.classList.add('escuchando');
+      }
     }
     if (interimTranscript && !handled) {
       console.log('[voz:dialogo] texto parcial:', interimTranscript);
@@ -727,6 +751,12 @@ function startListening() {
       return;
     }
     avatarWrap.classList.remove('escuchando');
+
+    // Solo oyo su propio eco: no es un fallo del microfono, vuelve a escuchar.
+    if (sawEcho && !lastErrorCode) {
+      setTimeout(() => { if (voiceModeActive) startListening(); }, 400);
+      return;
+    }
 
     const ERRORES_PERMANENTES = ['not-allowed', 'service-not-allowed', 'network', 'audio-capture', 'language-not-supported'];
     if (ERRORES_PERMANENTES.includes(lastErrorCode)) {
