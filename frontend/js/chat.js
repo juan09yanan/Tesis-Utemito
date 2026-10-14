@@ -582,9 +582,10 @@ function speak(text) {
     utter.onstart = () => {
       speakingNow = true;
       setBotState('hablando');
-      avatarCaption.textContent = 'Utemito está hablando... (háblame para interrumpirlo)';
-      // Sigue escuchando el microfono mientras habla, para poder interrumpirlo.
-      if (voiceModeActive) startListening();
+      avatarCaption.textContent = 'Utemito está hablando... (tócalo para interrumpirlo)';
+      // El microfono se apaga mientras habla: asi no se escucha a si mismo.
+      // Para interrumpirlo se toca al avatar.
+      if (voiceModeActive) detenerEscucha();
     };
     const finish = () => {
       // Si es una locucion vieja (cancelada por una nueva) o el usuario ya
@@ -666,8 +667,17 @@ const MAX_FALLOS_SEGUIDOS = 5;
 let fallosSeguidos = 0;
 let listeningStartToken = 0;
 
+// Apaga el reconocimiento activo sin que su onend reinicie nada.
+function detenerEscucha() {
+  listeningStartToken++;
+  recognizing = false;
+  avatarWrap.classList.remove('escuchando');
+  if (activeRecognition) { try { activeRecognition.abort(); } catch (e) {} }
+}
+
 function startListening() {
   if (!voiceModeActive) return;
+  if (speakingNow) return; // no escuchar mientras Utemito habla (evita el eco)
 
   // Ya hay un reconocimiento vivo (el que escucha mientras Utemito habla):
   // no crees otro, solo refleja que ahora toca escuchar.
@@ -739,17 +749,14 @@ function startListening() {
   };
 
   r.onend = () => {
+    if (myToken !== listeningStartToken) return; // ya se inicio otro ciclo o se apago a proposito
     recognizing = false;
     if (handled) return;
-    if (myToken !== listeningStartToken) return; // ya se inicio otro ciclo, no dupliques
     if (!voiceModeActive) return;
 
     // El reconocimiento termina solo tras unos segundos de silencio: mientras
     // Utemito habla es normal, se reinicia sin contarlo como fallo.
-    if (speakingNow) {
-      setTimeout(() => { if (voiceModeActive && speakingNow) startListening(); }, 250);
-      return;
-    }
+    if (speakingNow) return;
     avatarWrap.classList.remove('escuchando');
 
     // Solo oyo su propio eco: no es un fallo del microfono, vuelve a escuchar.
@@ -801,6 +808,14 @@ function stopVoiceMode() {
   setBotState(null);
   avatarCaption.innerHTML = DEFAULT_CAPTION;
 }
+
+// Tocar al avatar mientras habla lo interrumpe y pasa a escucharte.
+avatarWrap.addEventListener('click', () => {
+  if (!speakingNow) return;
+  interrumpirVoz();
+  if (voiceModeActive) setTimeout(startListening, 300);
+});
+avatarWrap.style.cursor = 'pointer';
 
 if (voiceModeBtn) {
   if (!speechRecognitionSupported || !speechSynthesisSupported) {
