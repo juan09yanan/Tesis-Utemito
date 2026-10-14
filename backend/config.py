@@ -57,3 +57,9 @@ MAX_DISTANCE = float(_max_dist) if _max_dist else None
 # para que preguntas de seguimiento ("¿y cuando es?") encuentren su contexto.
 REWRITE_QUERY = os.getenv("REWRITE_QUERY", "true").strip().lower() in ("1", "true", "yes", "si")
 REWRITE_MODEL = os.getenv("REWRITE_MODEL", "") or GROQ_MODEL
+
+# ---------- Seguridad del chat ----------
+
+# Maximo de consultas al chat por IP y minuto (0 = sin limite). Frena abusos y
+# automatizacion; ademas protege la cuota gratuita de Groq.
+RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "20"))

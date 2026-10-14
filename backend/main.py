@@ -8,16 +8,20 @@ Ejecutar con:
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend import config
 from backend.admin import router as admin_router
 from backend.rag.llm import ask_buho
 from backend.schemas import ChatRequest, ChatResponse
+from backend.security import LimitadorTasa
 
 logger = logging.getLogger("utemito")
+
+limitador_chat = LimitadorTasa(limite=config.RATE_LIMIT_PER_MIN, ventana=60.0)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
@@ -65,7 +69,13 @@ def admin_panel():
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, request: Request):
+    cliente = request.client.host if request.client else "desconocido"
+    if not limitador_chat.permitir(cliente):
+        raise HTTPException(
+            status_code=429,
+            detail="Estas enviando muchas preguntas seguidas. Espera un momento e intentalo de nuevo.",
+        )
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="El mensaje no puede estar vacio")
 

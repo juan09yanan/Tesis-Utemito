@@ -211,7 +211,8 @@ function addBotMessage(text, fuentes) {
       const tag = document.createElement('span');
       tag.className = 'fuente-tag';
       tag.style.animationDelay = `${400 + idx * 90}ms`;
-      tag.textContent = f;
+      // Nombre legible (sin extension ni guiones): el usuario no subio estos documentos.
+      tag.textContent = String(f).replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
       tagsWrap.appendChild(tag);
     });
     content.appendChild(tagsWrap);
