@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#00983d">
-<title>Utemito - Asistente Virtual FCI-UTM</title>
+<title>Utemito - Asistente Virtual UTM</title>
 <script>
   // Aplica el tema guardado ANTES de pintar la pagina, para evitar el
   // parpadeo de claro->oscuro al recargar con el modo oscuro activado.
@@ -14,7 +14,7 @@
     }
   } catch (e) {}
 </script>
-<link rel="stylesheet" href="/css/style.css?v=7">
+<link rel="stylesheet" href="/css/style.css?v=14">
 </head>
 <body>
 
@@ -23,52 +23,117 @@
 <div class="app">
 
   <header class="app-header">
-    <div class="brand-mark" aria-hidden="true">🦉</div>
+    <a href="/" class="brand-mark" aria-label="Inicio Utemito" title="Utemito · UTM">
+      <img src="/logo.jpeg" alt="Logo Utemito" />
+    </a>
     <div class="header-info">
       <h1>UTEMITO <span class="estado-en-linea"><i></i>En línea</span></h1>
-      <p>Asistente virtual de la Facultad de Ciencias Informáticas · UTM</p>
+      <p>Asistente virtual de la Universidad Técnica de Manabí · UTM</p>
     </div>
     <div class="header-actions">
-      <button type="button" id="themeToggleBtn" class="header-link theme-toggle-btn" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">🌙</button>
-      <a href="/admin" class="header-link">Subir documentos</a>
+      <button type="button" id="themeToggleBtn" class="header-link header-icon-btn theme-toggle-btn" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">🌙</button>
+      <a href="/admin" class="header-link header-icon-btn upload-nav-btn" aria-label="Subir documento / Administración" title="Subir documento (Panel de administración)">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="11"/>
+          <polyline points="9 14 12 11 15 14"/>
+        </svg>
+      </a>
     </div>
   </header>
 
   <main class="chat-layout">
 
-    <aside class="avatar-panel">
-      <div class="avatar-stage">
-        <div class="avatar-wrap" id="avatarWrap">
-          <video id="buhoVideo" class="buho-video" width="190" height="190" autoplay muted playsinline preload="auto" poster="/animaciones/poster.jpg"></video>
+    <!-- COLUMNA IZQUIERDA: Apartado de enlaces, correos y telefonos -->
+    <aside class="recursos-panel" id="recursosPanel" aria-label="Enlaces, correos y teléfonos">
+      <div class="panel-head">
+        <div class="panel-head-title">
+          <span class="panel-head-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </span>
+          <div>
+            <h2>Enlaces y Contactos</h2>
+            <p>Datos relevantes de la consulta</p>
+          </div>
+        </div>
+        <div class="panel-head-actions">
+          <span class="recursos-badge" id="recursosCount" title="Total de datos extraídos">0</span>
+          <button type="button" class="recursos-clear-btn" id="clearRecursosBtn" title="Limpiar lista" hidden>Limpiar</button>
         </div>
       </div>
-      <div class="onda-voz" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <p class="avatar-caption" id="avatarCaption">¡Hola! Soy Utemito 🦉<br>Pregúntame sobre trámites de la FCI-UTM</p>
 
-      <button type="button" class="voice-mode-btn" id="voiceModeBtn">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
-        <span id="voiceModeLabel">Hablar con Utemito</span>
-      </button>
-      <p class="voice-mode-hint" id="voiceModeHint" hidden></p>
+      <div class="recursos-filters" id="recursosFilters" role="tablist" aria-label="Filtrar datos">
+        <button type="button" class="recurso-filter active" data-filter="todos">Todos</button>
+        <button type="button" class="recurso-filter" data-filter="enlace">Enlaces</button>
+        <button type="button" class="recurso-filter" data-filter="correo">Correos</button>
+        <button type="button" class="recurso-filter" data-filter="telefono">Teléfonos</button>
+      </div>
+
+      <div class="recursos-list" id="recursosList" aria-live="polite">
+        <div class="recursos-empty" id="recursosEmpty">
+          <div class="recursos-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="3"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+          </div>
+          <p class="recursos-empty-title">Sin enlaces ni contactos aún</p>
+          <p class="recursos-empty-desc">
+            Cuando <strong>Utemito</strong> mencione enlaces web, correos electrónicos o números de teléfono/extensión en sus respuestas, aparecerán organizados en este apartado.
+          </p>
+        </div>
+      </div>
     </aside>
 
-    <section class="chat-panel">
+    <!-- COLUMNA CENTRAL: Avatar 3D centrado con estante de libros (biblioteca) -->
+    <section class="avatar-panel" aria-label="Avatar 3D de Utemito">
+      <div class="avatar-stage library-stage" id="libraryStage">
+        <div class="avatar-wrap" id="avatarWrap" role="img" aria-label="Avatar 3D de Utemito"></div>
+      </div>
+
+      <div class="onda-voz" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="avatar-caption" id="avatarCaption"></p>
+
+      <div class="avatar-controls">
+        <button type="button" class="voice-mode-btn" id="voiceModeBtn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+          <span id="voiceModeLabel">Hablar con Utemito</span>
+        </button>
+      </div>
+      <p class="voice-mode-hint" id="voiceModeHint" hidden></p>
+    </section>
+
+    <!-- COLUMNA DERECHA: Chat de texto -->
+    <section class="chat-panel" aria-label="Chat de texto con Utemito">
+      <div class="chat-panel-head">
+        <div class="chat-panel-title">
+          <span class="chat-panel-dot"></span>
+          <h2>Chat de Consultas</h2>
+        </div>
+        <span class="chat-panel-sub">Respuestas basadas en documentos oficiales</span>
+      </div>
+
       <div class="messages" id="messages" aria-live="polite">
         <div class="msg msg-bot">
-          <div class="msg-avatar" aria-hidden="true">🦉</div>
+          <div class="msg-avatar" aria-hidden="true">
+            <img src="/logo.jpeg" alt="Utemito" />
+          </div>
           <div class="msg-content">
             <div class="bubble">
-              ¡Hola! Soy <strong>Utemito</strong>, el búho de la Facultad de Ciencias Informáticas de la UTM.
+              ¡Hola! Soy <strong>Utemito</strong>, el búho asistente virtual de la Universidad Técnica de Manabí (UTM).
               Estoy aquí para ayudarte con tus dudas sobre matrícula, certificados, becas, prácticas
-              preprofesionales, titulación y más. ¿En qué puedo ayudarte hoy?
+              preprofesionales, movilidad, titulación y más. ¿En qué puedo ayudarte hoy?
             </div>
-            <div class="sugerencias" id="sugerencias"></div>
           </div>
         </div>
       </div>
 
       <form class="chat-input" id="chatForm" autocomplete="off">
-        <input type="text" id="chatInput" placeholder="Escribe tu pregunta sobre trámites de la FCI..." maxlength="500" />
+        <input type="text" id="chatInput" placeholder="Escribe tu pregunta sobre trámites de la UTM..." maxlength="500" />
         <button type="button" id="micBtn" aria-label="Preguntar por voz" title="Preguntar por voz">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
             <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/>
@@ -86,6 +151,8 @@
   </main>
 </div>
 
-<script src="/js/chat.js?v=9"></script>
+<script src="/js/three.min.js"></script>
+<script src="/js/avatar3d.js?v=28"></script>
+<script src="/js/chat.js?v=28"></script>
 </body>
 </html>

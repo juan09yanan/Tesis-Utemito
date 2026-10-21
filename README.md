@@ -1,7 +1,6 @@
-# Utemito 🦉 — Asistente Virtual de la Facultad de Ciencias Informáticas (UTM)
+# Utemito 🦉 — Asistente Virtual de la Universidad Técnica de Manabí (UTM)
 
-Sistema web que permite a los estudiantes de la Facultad de Ciencias Informáticas
-de la Universidad Técnica de Manabí (UTM) hacer preguntas sobre trámites
+Sistema web que permite a los estudiantes de la Universidad Técnica de Manabí (UTM) hacer preguntas sobre trámites
 universitarios (matrícula, certificados, becas, prácticas preprofesionales,
 titulación, homologaciones, etc.) a **Utemito**, un búho asistente virtual
 impulsado por Inteligencia Artificial.
@@ -47,7 +46,7 @@ Estudiante (navegador)
 ## 2. Estructura del proyecto
 
 ```
-PROYECTO TESIS/
+UTEMITO/
 ├── backend/
 │   ├── main.py            # API FastAPI (sirve frontend + endpoints /api/chat y /admin)
 │   ├── config.py          # Configuración (lee variables de entorno)
@@ -166,7 +165,7 @@ token al entrar. Si lo dejas vacío, el panel queda abierto (cómodo en local).
 No necesitas "reentrenar" ningún modelo: el LLM (Groq) ya viene entrenado
 en lenguaje general; lo que cambia es la información que le damos como
 contexto (RAG), por eso este enfoque es rápido, gratuito y fácil de
-mantener para una tesis.
+mantener.
 
 ### Cómo responde el búho (grounding estricto)
 
@@ -237,7 +236,7 @@ HuggingFace Spaces y Railway lo hacen por defecto).
 
 ---
 
-## 7. Despliegue gratuito (para la defensa de tesis)
+## 7. Despliegue gratuito
 
 Opciones sin costo para publicar el sistema en internet:
 - **Render.com** (free tier): sube el repo, define `uvicorn backend.main:app --host 0.0.0.0 --port $PORT` como start command.
@@ -249,7 +248,7 @@ en el panel del servicio (no subas tu `.env` real a ningún repositorio público
 
 ---
 
-## 8. Posibles mejoras futuras (para la sección de "trabajo futuro" de la tesis)
+## 8. Posibles mejoras futuras
 
 - ~~Panel de administración web para subir documentos sin usar la terminal.~~ ✅ Implementado (`/admin`).
 - Autenticación de estudiantes (login institucional).

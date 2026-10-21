@@ -13,6 +13,7 @@ import logging
 from groq import Groq
 
 from backend import config, db
+from backend.rag.extract import extraer_contactos
 from backend.rag.store import get_collection
 
 logger = logging.getLogger("utemito.rag")
@@ -26,19 +27,19 @@ Reglas:
 - Conserva todos los terminos clave y NO agregues informacion que no este en la conversacion.
 - Si la pregunta ya es autonoma, devuelvela igual."""
 
-SYSTEM_PROMPT = """Eres "Utemito", el buho mascota y asistente virtual de la Facultad de Ciencias Informaticas (FCI) de la Universidad Tecnica de Manabi (UTM).
+SYSTEM_PROMPT = """Eres "Utemito", el buho mascota y asistente virtual de la Universidad Tecnica de Manabi (UTM).
 
-Tu trabajo es ayudar a los estudiantes con sus dudas sobre tramites universitarios: matricula, certificados, becas, practicas preprofesionales, titulacion, homologacion/convalidacion, y temas academicos o administrativos de la facultad.
+Tu trabajo es ayudar a los estudiantes con sus dudas sobre tramites universitarios: matricula, certificados, becas, practicas preprofesionales, titulacion, homologacion/convalidacion, movilidad de carrera, y temas academicos o administrativos de la universidad.
 
 Reglas que debes seguir SIEMPRE:
 - Responde SIEMPRE en espanol, de forma amable, cercana, cordial y clara, como un companero mayor que orienta a un estudiante nuevo.
 - Basate EXCLUSIVAMENTE en el CONTEXTO que aparece mas abajo. NO uses conocimiento externo ni supuestos. NUNCA inventes fechas, requisitos, montos, correos, telefonos, enlaces ni procedimientos que no esten en el contexto.
 - El sistema de busqueda a veces recupera fragmentos que NO tienen relacion real con la pregunta (son solo los "mas parecidos" de lo que hay disponible, no necesariamente relevantes). Evalua tu mismo si el CONTEXTO responde de verdad la pregunta especifica del estudiante antes de usarlo.
-- Si la respuesta especifica NO esta en el contexto (o el contexto es sobre un tramite distinto al que se pregunto), dilo con honestidad ("No tengo esa informacion exacta en mis documentos") y sugiere al estudiante acudir a Secretaria Academica de la FCI o a Bienestar Estudiantil de la UTM, mencionandolos SOLO POR NOMBRE. En ese caso NO incluyas NINGUN correo, telefono, extension ni enlace (URL) aunque aparezcan en el contexto: pertenecen a un tramite distinto y compartirlos confundiria al estudiante.
+- Si la respuesta especifica NO esta en el contexto (o el contexto es sobre un tramite distinto al que se pregunto), dilo con honestidad ("No tengo esa informacion exacta en mis documentos") y sugiere al estudiante acudir a Secretaria Academica o a Bienestar Estudiantil de la UTM, mencionandolos SOLO POR NOMBRE. En ese caso NO incluyas NINGUN correo, telefono, extension ni enlace (URL) aunque aparezcan en el contexto: pertenecen a un tramite distinto y compartirlos confundiria al estudiante.
 - Solo cuando el CONTEXTO SI responde la pregunta especifica, y contiene correos electronicos, numeros de telefono, extensiones o enlaces (URLs) relacionados con ESE tramite, incluyelos en tu respuesta escritos EXACTAMENTE como aparecen en el contexto, sin cambiar ni un caracter. NUNCA inventes ni uses datos de contacto que no esten en el contexto, y nunca los uses "por si sirven" si no son del tema preguntado.
 - Se conciso y organizado: cuando expliques un procedimiento o unos requisitos, usa pasos numerados simples (1., 2., 3.) o listas con guion (-).
 - Tu respuesta se muestra como texto en una burbuja de chat. NO uses formato Markdown (nada de "###", "**negritas**", tablas con "|", ni bloques de codigo). Escribe en parrafos y listas simples. Los correos y enlaces si van tal cual, en texto normal.
-- Puedes saludar y conversar brevemente de forma amigable, pero tu proposito principal es orientar sobre tramites universitarios de la FCI-UTM.
+- Puedes saludar y conversar brevemente de forma amigable, pero tu proposito principal es orientar sobre tramites universitarios de la UTM.
 """
 
 
@@ -230,6 +231,22 @@ def ask_buho(question: str, history: list[dict] | None = None) -> dict:
         max_tokens=700,
     )
 
-    respuesta = completion.choices[0].message.content
+    respuesta = completion.choices[0].message.content or ""
     fuentes = sorted({c["fuente"] for c in chunks})
-    return {"respuesta": respuesta, "fuentes": fuentes}
+
+    # Extrae enlaces, correos y telefonos/extensiones mencionados en la respuesta
+    # y los enriquece con metadatos de SQLite si provienen de las fuentes usadas.
+    contactos_db = {c["valor"].lower(): c for c in db.listar_contactos(documentos=fuentes)}
+    contactos_respuesta = []
+    for item in extraer_contactos(respuesta):
+        meta = contactos_db.get(item["valor"].lower(), {})
+        contactos_respuesta.append(
+            {
+                "documento": meta.get("documento", fuentes[0] if len(fuentes) == 1 else ""),
+                "tipo": item["tipo"],
+                "valor": item["valor"],
+                "seccion": meta.get("seccion", ""),
+            }
+        )
+
+    return {"respuesta": respuesta, "fuentes": fuentes, "contactos": contactos_respuesta}

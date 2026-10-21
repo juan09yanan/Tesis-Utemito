@@ -11,9 +11,21 @@ class ChatRequest(BaseModel):
     history: list[ChatTurn] = Field(default_factory=list)
 
 
+class TTSRequest(BaseModel):
+    text: str
+
+
+class ContactoInfo(BaseModel):
+    documento: str = ""
+    tipo: str  # "correo" | "telefono" | "enlace"
+    valor: str
+    seccion: str = ""
+
+
 class ChatResponse(BaseModel):
     respuesta: str
     fuentes: list[str] = Field(default_factory=list)
+    contactos: list[ContactoInfo] = Field(default_factory=list)
 
 
 # ---------- Panel de administracion ----------
@@ -42,13 +54,6 @@ class ArchivoResultado(BaseModel):
 class OperacionResponse(BaseModel):
     archivos: list[ArchivoResultado] = Field(default_factory=list)
     total_fragmentos: int = 0
-
-
-class ContactoInfo(BaseModel):
-    documento: str
-    tipo: str  # "correo" | "telefono" | "enlace"
-    valor: str
-    seccion: str = ""
 
 
 class ContactosResponse(BaseModel):

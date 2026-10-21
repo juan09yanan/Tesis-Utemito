@@ -1,5 +1,6 @@
-// Panel de administracion de Utemito: subir, listar, borrar y reindexar los
-// documentos que forman la base de conocimiento del buho.
+// Panel de administracion de Utemito: subir (mediante ventana emergente),
+// listar en la seccion derecha, borrar y reindexar los documentos que forman
+// la base de conocimiento del buho.
 
 const ACCEPTED = ['.md', '.txt', '.pdf', '.docx'];
 const TOKEN_KEY = 'utemito_admin_token';
@@ -12,6 +13,12 @@ const tokenInput = $('tokenInput');
 const tokenError = $('tokenError');
 const panel = $('panel');
 
+// Modal de subida de documentos
+const openUploadModalBtn = $('openUploadModalBtn');
+const uploadModal = $('uploadModal');
+const closeUploadModalBtn = $('closeUploadModalBtn');
+const cancelUploadModalBtn = $('cancelUploadModalBtn');
+
 const dropzone = $('dropzone');
 const fileInput = $('fileInput');
 const fileQueue = $('fileQueue');
@@ -19,6 +26,7 @@ const uploadBtn = $('uploadBtn');
 const clearQueueBtn = $('clearQueueBtn');
 
 const docTableBody = $('docTableBody');
+const docSearchInput = $('docSearchInput');
 const statDocs = $('statDocs');
 const statChunks = $('statChunks');
 const reindexBtn = $('reindexBtn');
@@ -30,6 +38,7 @@ const TIPO_LABEL = { correo: 'Correo', telefono: 'Teléfono', enlace: 'Enlace' }
 
 let adminToken = localStorage.getItem(TOKEN_KEY) || '';
 let queue = []; // File[]
+let cachedDocs = [];
 
 // ---------- Utilidades ----------
 
@@ -70,11 +79,45 @@ async function apiFetch(url, options = {}) {
   return data;
 }
 
+// ---------- Ventana Emergente (Modal) ----------
+
+function abrirModalSubida() {
+  if (!uploadModal) return;
+  uploadModal.hidden = false;
+  setTimeout(() => dropzone?.focus(), 50);
+}
+
+function cerrarModalSubida() {
+  if (!uploadModal) return;
+  uploadModal.hidden = true;
+}
+
+if (openUploadModalBtn) {
+  openUploadModalBtn.addEventListener('click', abrirModalSubida);
+}
+if (closeUploadModalBtn) {
+  closeUploadModalBtn.addEventListener('click', cerrarModalSubida);
+}
+if (cancelUploadModalBtn) {
+  cancelUploadModalBtn.addEventListener('click', cerrarModalSubida);
+}
+if (uploadModal) {
+  uploadModal.addEventListener('click', (e) => {
+    if (e.target === uploadModal) cerrarModalSubida();
+  });
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && uploadModal && !uploadModal.hidden) {
+    cerrarModalSubida();
+  }
+});
+
 // ---------- Acceso por token ----------
 
 function showTokenCard(errorMsg) {
   panel.hidden = true;
   tokenCard.hidden = false;
+  cerrarModalSubida();
   if (errorMsg) {
     tokenError.textContent = errorMsg;
     tokenError.hidden = false;
@@ -156,13 +199,18 @@ uploadBtn.addEventListener('click', async () => {
   uploadBtn.innerHTML = '<span class="spinner"></span>Subiendo…';
   try {
     const data = await apiFetch('/api/admin/upload', { method: 'POST', body: form });
+    let huboError = false;
     (data.archivos || []).forEach((a) => {
       const tipo = a.estado === 'ok' ? (a.fragmentos ? 'ok' : 'warn') : 'err';
+      if (a.estado !== 'ok') huboError = true;
       toast(`${a.nombre}: ${a.detalle}`, tipo);
     });
     queue = [];
     renderQueue();
     await Promise.all([cargarDocumentos(), cargarContactos()]);
+    if (!huboError) {
+      cerrarModalSubida();
+    }
   } catch (err) {
     toast(err.message, 'err');
   } finally {
@@ -171,7 +219,7 @@ uploadBtn.addEventListener('click', async () => {
   }
 });
 
-// ---------- Tabla de documentos ----------
+// ---------- Tabla de documentos (Seccion Derecha) ----------
 
 function badge(doc) {
   if (!doc.archivo_presente) return '<span class="badge badge-err">Archivo faltante</span>';
@@ -180,12 +228,19 @@ function badge(doc) {
 }
 
 function renderTabla(docs) {
-  if (!docs.length) {
-    docTableBody.innerHTML = '<tr><td colspan="5" class="muted center">No hay documentos todavía. Sube el primero arriba.</td></tr>';
+  const termino = (docSearchInput?.value || '').trim().toLowerCase();
+  const filtrados = termino
+    ? docs.filter((d) => d.nombre.toLowerCase().includes(termino))
+    : docs;
+
+  if (!filtrados.length) {
+    docTableBody.innerHTML = termino
+      ? '<tr><td colspan="5" class="muted center">Ningún documento coincide con tu búsqueda.</td></tr>'
+      : '<tr><td colspan="5" class="muted center">No hay documentos todavía. Usa el botón «Subir nuevo documento» para agregar el primero.</td></tr>';
     return;
   }
   docTableBody.innerHTML = '';
-  docs.forEach((doc) => {
+  filtrados.forEach((doc) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="doc-name"></td>
@@ -195,7 +250,7 @@ function renderTabla(docs) {
       <td class="actions-col">
         <button class="btn btn-danger btn-sm" type="button">Eliminar</button>
       </td>`;
-    tr.children[0].textContent = doc.nombre;
+    tr.children[0].textContent = `📄 ${doc.nombre}`;
     tr.children[1].textContent = doc.archivo_presente ? fmtSize(doc.tamano_kb * 1024) : '—';
     tr.children[2].textContent = doc.fragmentos;
     tr.children[3].innerHTML = badge(doc);
@@ -204,14 +259,21 @@ function renderTabla(docs) {
   });
 }
 
+if (docSearchInput) {
+  docSearchInput.addEventListener('input', () => renderTabla(cachedDocs));
+}
+
 async function cargarDocumentos() {
   try {
     const data = await apiFetch('/api/admin/documents');
-    statDocs.textContent = data.total_documentos ?? (data.documentos || []).length;
+    showPanel();
+    cachedDocs = data.documentos || [];
+    statDocs.textContent = data.total_documentos ?? cachedDocs.length;
     statChunks.textContent = data.total_fragmentos ?? 0;
-    renderTabla(data.documentos || []);
+    renderTabla(cachedDocs);
   } catch (err) {
     if (err.message !== 'No autorizado') {
+      showPanel();
       toast(err.message, 'err');
       docTableBody.innerHTML = '<tr><td colspan="5" class="muted center">No se pudo cargar la lista.</td></tr>';
     }
@@ -277,31 +339,17 @@ reindexBtn.addEventListener('click', async () => {
     toast(err.message, 'err');
   } finally {
     reindexBtn.disabled = false;
-    reindexBtn.textContent = 'Reindexar todo';
+    reindexBtn.textContent = '🔄 Reindexar toda la base';
   }
 });
 
 refreshBtn.addEventListener('click', cargarDocumentos);
 refreshContactsBtn.addEventListener('click', cargarContactos);
 
-// ---------- Arranque ----------
+// ---------- Arranque en paralelo (carga inmediata) ----------
 
 async function init() {
-  try {
-    // Sondea el endpoint: si el panel esta protegido y no hay token valido, devuelve 401.
-    const data = await apiFetch('/api/admin/documents');
-    showPanel();
-    statDocs.textContent = data.total_documentos ?? (data.documentos || []).length;
-    statChunks.textContent = data.total_fragmentos ?? 0;
-    renderTabla(data.documentos || []);
-    await cargarContactos();
-  } catch (err) {
-    if (err.message !== 'No autorizado') {
-      // El backend respondio, pero con otro error: mostramos el panel igual.
-      showPanel();
-      toast(err.message, 'err');
-    }
-  }
+  await Promise.all([cargarDocumentos(), cargarContactos()]);
 }
 
 renderQueue();

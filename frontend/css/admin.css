@@ -1,47 +1,100 @@
-/* Panel de administracion de Utemito.
+/* Panel de administracion de Utemito (2 columnas + modal de subida).
    Reutiliza la paleta institucional definida en style.css (:root). */
-
-.header-buho {
-  width: 46px;
-  height: 46px;
-  flex-shrink: 0;
-}
 
 .admin-main {
   flex: 1;
   width: 100%;
-  max-width: 920px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 28px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.token-card-wrap {
+  max-width: 540px;
+  width: 100%;
+  margin: 40px auto;
+}
+
+/* ---------- Disposicion en 2 columnas ---------- */
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(330px, 410px) minmax(460px, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.admin-grid[hidden] {
+  display: none !important;
+}
+
+.admin-col-left {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
 .admin-card {
-  background: white;
+  background: var(--card);
+  border: 1px solid var(--card-borde);
+  backdrop-filter: blur(16px);
   border-radius: var(--radius);
   border-top: 4px solid var(--dorado);
   box-shadow: var(--shadow);
   padding: 22px 24px;
 }
 
+.admin-docs-section {
+  border-top-color: var(--verde-utm);
+  min-height: 540px;
+  display: flex;
+  flex-direction: column;
+}
+
 .admin-card h2 {
-  margin: 0 0 10px;
-  font-size: 1.15rem;
-  color: var(--verde-utm-oscuro);
+  margin: 0 0 8px;
+  font-size: 1.12rem;
+  color: var(--strong);
 }
 
 .card-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 .card-head h2 { margin: 0; }
 
-.muted { color: var(--gris); font-size: 0.88rem; line-height: 1.5; margin: 0 0 14px; }
+.card-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.doc-search-input {
+  border: 1px solid var(--input-borde);
+  background: var(--input-bg);
+  color: var(--texto);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+  min-width: 185px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.doc-search-input:focus {
+  border-color: var(--verde-utm);
+  box-shadow: 0 0 0 3px rgba(0, 152, 61, 0.14);
+}
+
+.muted { color: var(--gris); font-size: 0.86rem; line-height: 1.5; margin: 0 0 14px; }
+.sub-muted { margin: 4px 0 0; font-size: 0.8rem; }
 .muted code {
   background: var(--crema);
   padding: 1px 6px;
@@ -60,8 +113,12 @@
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: filter 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  transition: filter 0.15s ease, transform 0.15s var(--spring), background 0.15s ease, box-shadow 0.2s ease;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -69,15 +126,32 @@
 .btn-primary {
   background: linear-gradient(120deg, var(--verde-utm-oscuro), var(--verde-utm));
   color: white;
+  box-shadow: 0 6px 16px rgba(0, 120, 50, 0.26);
 }
-.btn-primary:not(:disabled):hover { filter: brightness(1.08); }
+.btn-primary:not(:disabled):hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 120, 50, 0.35);
+}
+
+.btn-upload-trigger {
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 0.94rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.btn-full {
+  width: 100%;
+}
 
 .btn-ghost {
-  background: white;
-  color: var(--verde-utm-oscuro);
-  border: 1px solid #cdead9;
+  background: var(--burbuja-bot);
+  color: var(--strong);
+  border: 1px solid var(--input-borde);
 }
-.btn-ghost:not(:disabled):hover { background: #eaf7ee; }
+.btn-ghost:not(:disabled):hover { background: rgba(0, 152, 61, 0.08); }
 
 .btn-sm { padding: 7px 13px; font-size: 0.8rem; }
 
@@ -94,7 +168,9 @@
 .token-form input {
   flex: 1;
   min-width: 220px;
-  border: 1px solid #cdead9;
+  border: 1px solid var(--input-borde);
+  background: var(--input-bg);
+  color: var(--texto);
   border-radius: 999px;
   padding: 10px 16px;
   font-size: 0.9rem;
@@ -105,37 +181,158 @@
 /* ---------- Estadisticas ---------- */
 
 .stats-row {
-  display: flex;
-  gap: 16px;
-  align-items: stretch;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 .stat {
-  background: white;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  background: var(--burbuja-bot);
+  border-radius: 16px;
+  border: 1px solid var(--burbuja-bot-borde);
   border-left: 4px solid var(--verde-utm);
-  padding: 14px 22px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 150px;
 }
-.stat-num { font-size: 1.7rem; font-weight: 700; color: var(--verde-utm-oscuro); }
-.stat-label { font-size: 0.78rem; color: var(--gris); }
-.stats-row .btn { margin-left: auto; align-self: center; }
+.stat-num { font-size: 1.55rem; font-weight: 800; color: var(--strong); }
+.stat-label { font-size: 0.75rem; color: var(--gris); }
+
+.reindex-bar {
+  display: flex;
+}
+
+/* ---------- Ventana Emergente (Modal) para Subir Documentos ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(10, 22, 15, 0.58);
+  backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  animation: modal-fade-in 0.2s ease both;
+}
+.modal-backdrop[hidden] {
+  display: none !important;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 560px;
+  background: var(--burbuja-bot);
+  border: 1px solid var(--burbuja-bot-borde);
+  border-top: 4px solid var(--verde-utm);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modal-pop 0.3s var(--spring) both;
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: translateY(18px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--burbuja-bot-borde);
+}
+
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(0, 152, 61, 0.12);
+  color: var(--verde-utm);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.modal-title-wrap h2 {
+  margin: 0;
+  font-size: 1.08rem;
+  color: var(--strong);
+}
+
+.modal-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--gris);
+}
+
+.modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--input-borde);
+  background: transparent;
+  color: var(--gris);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s ease;
+}
+.modal-close-btn:hover {
+  background: rgba(201, 42, 42, 0.08);
+  color: #c92a2a;
+  border-color: #f1c9c9;
+}
+
+.modal-body {
+  padding: 18px 22px;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--burbuja-bot-borde);
+  background: rgba(0, 152, 61, 0.03);
+}
+
+.modal-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 /* ---------- Dropzone ---------- */
 
 .dropzone {
-  border: 2px dashed #b6dcc4;
-  border-radius: var(--radius);
+  border: 2px dashed #9dd4b3;
+  border-radius: 18px;
   background: var(--crema);
-  padding: 30px 20px;
+  padding: 32px 20px;
   text-align: center;
   color: var(--gris);
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 .dropzone p { margin: 8px 0 0; font-size: 0.9rem; }
 .dropzone:hover,
@@ -144,6 +341,7 @@
   border-color: var(--verde-utm);
   background: #e3f6e9;
   color: var(--verde-utm-oscuro);
+  transform: scale(1.01);
 }
 
 /* ---------- Cola de archivos por subir ---------- */
@@ -160,7 +358,7 @@
   padding: 8px 12px;
   font-size: 0.85rem;
 }
-.file-queue .fq-name { flex: 1; word-break: break-all; }
+.file-queue .fq-name { flex: 1; word-break: break-all; font-weight: 600; }
 .file-queue .fq-size { color: var(--gris); font-size: 0.8rem; }
 .file-queue .fq-remove {
   border: none;
@@ -174,34 +372,37 @@
 .file-queue .fq-remove:hover { color: #c92a2a; }
 .file-queue li.bad { border-color: #f1c9c9; background: #fdecec; }
 
-.actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
-
 /* ---------- Tabla de documentos ---------- */
 
 .table-wrap { overflow-x: auto; }
+.table-scroll { max-height: 330px; overflow-y: auto; }
 
 .doc-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
 .doc-table th, .doc-table td {
   text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid #e8f1ea;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--burbuja-bot-borde);
 }
 .doc-table th {
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--gris);
 }
 .doc-table td.num, .doc-table th.num { text-align: right; white-space: nowrap; }
-.doc-table tbody tr:hover { background: #f6fbf8; }
-.doc-table .doc-name { font-weight: 600; color: var(--texto); word-break: break-all; }
+.doc-table tbody tr:hover { background: rgba(0, 152, 61, 0.04); }
+.doc-table .doc-name {
+  font-weight: 600;
+  color: var(--texto);
+  word-break: break-all;
+}
 .actions-col { width: 1%; white-space: nowrap; }
 
 .badge {
   display: inline-block;
   font-size: 0.72rem;
   font-weight: 600;
-  padding: 2px 9px;
+  padding: 3px 10px;
   border-radius: 999px;
 }
 .badge-ok { background: #e3f6e9; color: var(--verde-utm-oscuro); }
@@ -217,11 +418,11 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 50;
+  z-index: 80;
   max-width: 340px;
 }
 .toast {
-  background: white;
+  background: var(--burbuja-bot);
   border-left: 4px solid var(--verde-utm);
   box-shadow: var(--shadow);
   border-radius: 10px;
@@ -251,35 +452,26 @@
 .btn-ghost .spinner { border-color: #cdead9; border-top-color: var(--verde-utm); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---------- Responsive ---------- */
+
+@media (max-width: 960px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-docs-section {
+    min-height: auto;
+  }
+}
+
 @media (max-width: 640px) {
-  .admin-main { padding: 16px; }
+  .admin-main { padding: 14px; }
   .header-actions { margin-left: 0; }
   .app-header { flex-wrap: wrap; }
+  .modal-footer { flex-direction: column; align-items: stretch; }
+  .modal-footer-right { justify-content: flex-end; }
 }
 
-/* ---------- Modo oscuro (ver toggle y variables en style.css) ---------- */
-
-:root[data-theme="dark"] .admin-card,
-:root[data-theme="dark"] .stat,
-:root[data-theme="dark"] .toast {
-  background: #121c17;
-  color: var(--texto);
-}
-
-:root[data-theme="dark"] .muted code { background: #1a2620; }
-
-:root[data-theme="dark"] .token-form input {
-  background: #1a2620;
-  border-color: #24352c;
-  color: var(--texto);
-}
-
-:root[data-theme="dark"] .btn-ghost {
-  background: #1a2620;
-  color: var(--texto);
-  border-color: #24352c;
-}
-:root[data-theme="dark"] .btn-ghost:not(:disabled):hover { background: #223229; }
+/* ---------- Modo oscuro ---------- */
 
 :root[data-theme="dark"] .btn-danger {
   background: #241414;
@@ -299,11 +491,6 @@
 
 :root[data-theme="dark"] .file-queue li { background: #182420; border-color: #2a3d33; }
 :root[data-theme="dark"] .file-queue li.bad { border-color: #3a1f1f; background: #241414; }
-
-:root[data-theme="dark"] .doc-table th,
-:root[data-theme="dark"] .doc-table td { border-bottom-color: #20302a; }
-:root[data-theme="dark"] .doc-table tbody tr:hover { background: #182420; }
-:root[data-theme="dark"] .doc-table .doc-name { color: var(--texto); }
 
 :root[data-theme="dark"] .badge-ok { background: #173321; color: #7be3a0; }
 :root[data-theme="dark"] .badge-warn { background: #332a10; color: #f0cf6a; }

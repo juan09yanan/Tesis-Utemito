@@ -1,10 +1,10 @@
 ================================================================================
- UTEMITO - ASISTENTE VIRTUAL DE LA FACULTAD DE CIENCIAS INFORMATICAS (FCI-UTM)
- DOCUMENTACION TECNICA DEL PROYECTO (para sustentacion de tesis)
+ UTEMITO - ASISTENTE VIRTUAL DE LA UNIVERSIDAD TECNICA DE MANABI (UTM)
+ DOCUMENTACION TECNICA DEL SISTEMA
 ================================================================================
 
-Universidad Tecnica de Manabi (UTM) - Facultad de Ciencias Informaticas (FCI)
-Proyecto de tesis: sistema web de asistencia virtual para tramites estudiantiles
+Universidad Tecnica de Manabi (UTM)
+Sistema web de asistencia virtual para tramites estudiantiles
 
 
 ================================================================================
@@ -12,7 +12,7 @@ Proyecto de tesis: sistema web de asistencia virtual para tramites estudiantiles
 ================================================================================
 
 Utemito es un asistente virtual (chatbot) con voz e interfaz web, pensado para
-que los estudiantes de la Facultad de Ciencias Informaticas de la UTM resuelvan
+que los estudiantes de la Universidad Tecnica de Manabi (UTM) resuelvan
 dudas sobre tramites universitarios (matricula, certificados, becas, practicas
 preprofesionales, titulacion, homologacion/convalidacion, movilidad de carrera,
 etc.) consultando directamente a un buho mascota animado.
@@ -144,7 +144,7 @@ Herramientas de desarrollo / infraestructura:
 4. ESTRUCTURA DE CARPETAS DEL PROYECTO
 ================================================================================
 
-Tesisproy/
+Utemito/
 |-- backend/
 |   |-- main.py            API FastAPI: sirve el frontend y expone los
 |   |                      endpoints /api/chat, /api/health y el router
@@ -300,8 +300,7 @@ clave que evita que el buho "invente" informacion. Resume sus reglas:
     el contexto responde de verdad la pregunta especifica antes de usarlo.
   - Si la respuesta especifica no esta en el contexto (o el contexto es de
     un tramite distinto), lo dice con honestidad ("No tengo esa informacion
-    exacta en mis documentos") y sugiere acudir a Secretaria Academica de la
-    FCI o a Bienestar Estudiantil de la UTM MENCIONANDOLOS SOLO POR NOMBRE,
+    exacta en mis documentos") y sugiere acudir a Secretaria Academica o a Bienestar Estudiantil de la UTM MENCIONANDOLOS SOLO POR NOMBRE,
     SIN dar ningun correo/telefono/enlace de otro tramite aunque aparezca en
     el contexto (evita el caso real detectado en pruebas: dar un enlace o
     correo de un tramite distinto al preguntado, que confunde al estudiante).
@@ -344,8 +343,7 @@ ambas 100% locales (un solo archivo, sin instalar ningun servidor aparte):
       cada pregunta.
 
   Justificacion de usar SQLite y no un gestor como PostgreSQL: el sistema
-  es de un solo servidor / un solo proceso (tipico de un proyecto de tesis o
-  de una facultad que lo despliega en un solo servicio). SQLite no requiere
+  es de un solo servidor / un solo proceso (desplegado en un solo servicio). SQLite no requiere
   instalar ni administrar un servidor de base de datos aparte, ni configurar
   credenciales de red: es un archivo local, igual de simple que ChromaDB
   (que tambien es un archivo local). PostgreSQL solo aportaria valor si en
@@ -550,7 +548,7 @@ Limitaciones actuales:
   - No hay autenticacion de estudiantes ni historial de conversaciones
     persistente entre sesiones (cada recarga de pagina empieza de cero).
 
-Posibles mejoras futuras (trabajo futuro de la tesis):
+Posibles mejoras futuras:
   - Autenticacion institucional de estudiantes.
   - Historial de conversaciones y metricas de las preguntas mas frecuentes,
     para detectar que informacion falta documentar.
